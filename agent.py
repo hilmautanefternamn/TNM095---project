@@ -22,7 +22,6 @@
 # check for nearby ghosts
 # check for nearby walls
 
-
 from pacman import *
 import random
 
