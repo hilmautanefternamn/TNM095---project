@@ -349,20 +349,20 @@ class game:
         self.mode = newMode
         self.modeTimer = 0
 
-        if newMode == 0:
-            self.PlayBackgoundSound(snd_levelintro)
-        elif newMode == 1:
-            self.PlayBackgoundSound(snd_default)
-        elif newMode == 2:
-            self.PlayBackgoundSound(snd_death)
-        elif newMode == 8:
-            self.PlayBackgoundSound(snd_gh2gohome)
-        elif newMode == 9:
-            self.PlayBackgoundSound(snd_extrapac)
-        elif newMode == 11:
-            self.PlayBackgoundSound(snd_love)
-        else:
-            channel_backgound.stop()
+    #    if newMode == 0:
+    #        self.PlayBackgoundSound(snd_levelintro)
+    #    elif newMode == 1:
+    #        self.PlayBackgoundSound(snd_default)
+    #    elif newMode == 2:
+    #        self.PlayBackgoundSound(snd_death)
+    #    elif newMode == 8:
+    #        self.PlayBackgoundSound(snd_gh2gohome)
+    #    elif newMode == 9:
+    #        self.PlayBackgoundSound(snd_extrapac)
+    #    elif newMode == 11:
+    #        self.PlayBackgoundSound(snd_love)
+    #    else:
+    #        channel_backgound.stop()
 
 
 class node:
@@ -1465,25 +1465,26 @@ def CheckIfCloseButton(events):
 
 def CheckInputs():
     if thisGame.mode == 1 or thisGame.mode == 8 or thisGame.mode == 9:
-        if pygame.key.get_pressed()[pygame.K_RIGHT] or (js is not None and js.get_axis(JS_XAXIS) > 0.5):
+        direction = choose_AI_dir()
+        if pygame.key.get_pressed()[pygame.K_RIGHT] or (js is not None and js.get_axis(JS_XAXIS) > 0.5) or direction == "RIGHT":
             if not (player.velX == player.speed and player.velY == 0) and not thisLevel.CheckIfHitWall(
                     (player.x + player.speed, player.y), (player.nearestRow, player.nearestCol)):
                 player.velX = player.speed
                 player.velY = 0
 
-        elif pygame.key.get_pressed()[pygame.K_LEFT] or (js is not None and js.get_axis(JS_XAXIS) < -0.5):
+        elif pygame.key.get_pressed()[pygame.K_LEFT] or (js is not None and js.get_axis(JS_XAXIS) < -0.5) or direction == "LEFT":
             if not (player.velX == -player.speed and player.velY == 0) and not thisLevel.CheckIfHitWall(
                     (player.x - player.speed, player.y), (player.nearestRow, player.nearestCol)):
                 player.velX = -player.speed
                 player.velY = 0
 
-        elif pygame.key.get_pressed()[pygame.K_DOWN] or (js is not None and js.get_axis(JS_YAXIS) > 0.5):
+        elif pygame.key.get_pressed()[pygame.K_DOWN] or (js is not None and js.get_axis(JS_YAXIS) > 0.5) or direction == "DOWN":
             if not (player.velX == 0 and player.velY == player.speed) and not thisLevel.CheckIfHitWall(
                     (player.x, player.y + player.speed), (player.nearestRow, player.nearestCol)):
                 player.velX = 0
                 player.velY = player.speed
 
-        elif pygame.key.get_pressed()[pygame.K_UP] or (js is not None and js.get_axis(JS_YAXIS) < -0.5):
+        elif pygame.key.get_pressed()[pygame.K_UP] or (js is not None and js.get_axis(JS_YAXIS) < -0.5) or direction == "UP":
             if not (player.velX == 0 and player.velY == -player.speed) and not thisLevel.CheckIfHitWall(
                     (player.x, player.y - player.speed), (player.nearestRow, player.nearestCol)):
                 player.velX = 0
@@ -1791,3 +1792,8 @@ while True:
     del rect_list[:]
 
     clock.tick(40)
+
+#     ____________
+# ___/  AI agent  \_____________________________________________________
+    def choose_AI_dir():
+        return 'RIGHT'

@@ -21,7 +21,7 @@
 # FUNCTIONS 
 # check for nearby ghosts
 # check for nearby walls
-print('hi from agent')
+print('hi')
 
 from pacman import ghosts
 
