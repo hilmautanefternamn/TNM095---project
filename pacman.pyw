@@ -162,8 +162,8 @@ class game:
 
     @staticmethod
     def defaulthiscorelist():
-        return [(100000, "David"), (80000, "Andy"), (60000, "Count Pacula"), (40000, "Cleopacra"),
-                (20000, "Brett Favre"), (10000, "Sergei Pachmaninoff")]
+        return [(100000, "Kuzon"), (80000, "Andy"), (60000, "Lisa"), (40000, "Cleopacra"),
+                (20000, "Brett Favre"), (10000, "Hilma")]
 
     @staticmethod
     def writehiscores(hs):
@@ -1462,7 +1462,6 @@ def CheckIfCloseButton(events):
     for event in events:
         if event.type == QUIT:
             sys.exit(0)
-
 
 def CheckInputs():
     if thisGame.mode == 1 or thisGame.mode == 8 or thisGame.mode == 9:
