@@ -25,6 +25,7 @@
 from pacman import *
 import random
 
+
 # make random move RIGHT, LEFT, DOWN o UP 
 def aiMove():
     move = ['RIGHT', 'LEFT', 'DOWN', 'UP']  
