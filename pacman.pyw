@@ -1490,8 +1490,8 @@ def CheckInputs(aiMove = 0):
         sys.exit(0)
 
     elif thisGame.mode == 3:
-      #  if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)): #add this to have a main menu
-      thisGame.StartNewGame()
+      if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)): #add this to have a main menu
+        thisGame.StartNewGame()
 
 
 #      _____________________________________________
@@ -1582,6 +1582,8 @@ oldFillColor = None
 thisGame = game()
 thisLevel = level()
 thisLevel.LoadLevel(thisGame.GetLevelNum())
+
+thisGame.StartNewGame()     # Comment this for a main menu
 
 #window = pygame.display.set_mode(thisGame.screenSize, pygame.FULLSCREEN)
 window = pygame.display.set_mode(thisGame.screenSize)
