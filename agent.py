@@ -25,7 +25,6 @@
 from pacman import *
 import random
 
-
 # make random move RIGHT, LEFT, DOWN o UP 
 def aiMove():
     move = ['RIGHT', 'LEFT', 'DOWN', 'UP']  
@@ -56,7 +55,6 @@ while True:
 
     if thisGame.mode == 1:
         # normal gameplay mode
-        
         CheckInputs(aiMove())
         thisGame.modeTimer += 1
 
@@ -74,6 +72,16 @@ while True:
 
             thisGame.lives -= 1
             if thisGame.lives == -1:
+                
+                # write game data to file 
+                file = open('pacman_run_data.txt','a') 
+                file.write('-----------------------------\n')
+                file.write('score: ' + str(thisGame.score) + '\n')
+                file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+                file.close()
+                #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
+                #file.writelines(L) 
+
                 thisGame.updatehiscores(thisGame.score)
                 thisGame.SetMode(3)
                 thisGame.drawmidgamehiscores()
