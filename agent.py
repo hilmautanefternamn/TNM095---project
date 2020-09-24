@@ -50,7 +50,7 @@ while True:
         # ready to level start
         thisGame.modeTimer += 1
 
-        if thisGame.modeTimer == 150:
+        if thisGame.modeTimer == 1: #Change this to 150 for a brief pause before game
             thisGame.SetMode(1)
 
     if thisGame.mode == 1:

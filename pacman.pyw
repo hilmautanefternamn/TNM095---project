@@ -1490,8 +1490,8 @@ def CheckInputs(aiMove = 0):
         sys.exit(0)
 
     elif thisGame.mode == 3:
-        if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)):
-            thisGame.StartNewGame()
+      #  if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)): #add this to have a main menu
+      thisGame.StartNewGame()
 
 
 #      _____________________________________________
