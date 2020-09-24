@@ -1,6 +1,6 @@
-90000 Agatha agnes
-80000 Peter cordellia
-60000 Hello Ahram
-40000 This is for you
-20000 Made by Wollala
-10000 Mario Mario 
+90000 Simon
+80000 Lisa
+60000 Bot 1
+40000 Bot 2
+20000 Bot 291
+13020 User

@@ -28,6 +28,8 @@ import random
 # make random move RIGHT, LEFT, DOWN o UP 
 def aiMove():
     move = ['RIGHT', 'LEFT', 'DOWN', 'UP']  
+    if thisGame.mode == 3:
+        return 'ENTER'
     return random.choice(move)
 
 
@@ -44,19 +46,22 @@ def aiMove():
 # 9 = changed ghost to glasses
 # 10 = blank screen before changing levels
 
+aiTraining = 1
+deaths = 0
+
 while True: 
     CheckIfCloseButton(pygame.event.get())
     if thisGame.mode == 0:
         # ready to level start
         thisGame.modeTimer += 1
 
-        if thisGame.modeTimer == 1: #Change this to 150 for a brief pause before game
+        if aiTraining or thisGame.modeTimer == 150: #Change this to 150 for a brief pause before game
             thisGame.SetMode(1)
 
     if thisGame.mode == 1:
         # normal gameplay mode
         CheckInputs(aiMove())
-        thisGame.modeTimer += 1
+        thisGame.modeTimer += 1000
 
         player.Move()
         for i in range(0, 4, 1):
@@ -66,15 +71,17 @@ while True:
     elif thisGame.mode == 2:
         # waiting after getting hit by a ghost
         thisGame.modeTimer += 1
-
-        if thisGame.modeTimer == 60:
+      
+        if aiTraining or thisGame.modeTimer == 60: #Change to 60 for longer pause
             thisLevel.Restart()
-
+        
             thisGame.lives -= 1
             if thisGame.lives == -1:
-                
+                deaths += 1
                 # write game data to file 
                 file = open('pacman_run_data.txt','a') 
+                file.write('-----------------------------\n')
+                file.write('---------- death ' + str(deaths) + ' ----------\n')
                 file.write('-----------------------------\n')
                 file.write('score: ' + str(thisGame.score) + '\n')
                 file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
@@ -90,13 +97,14 @@ while True:
 
     elif thisGame.mode == 3:
         # game over
-        CheckInputs()
+        #thisGame.start
+        CheckInputs(aiMove())
 
     elif thisGame.mode == 4:
         # waiting to start
         thisGame.modeTimer += 1
 
-        if thisGame.modeTimer == 60:
+        if aiTraining or thisGame.modeTimer == 60: #change to 60
             thisGame.SetMode(1)
             player.velX = player.speed
 
@@ -104,14 +112,14 @@ while True:
         # brief pause after munching a vulnerable ghost
         thisGame.modeTimer += 1
 
-        if thisGame.modeTimer == 20:
+        if aiTraining or thisGame.modeTimer == 20:    #change to 20
             thisGame.SetMode(8)
 
     elif thisGame.mode == 6:
         # pause after eating all the pellets
         thisGame.modeTimer += 1
 
-        if thisGame.modeTimer == 40:
+        if thisGame.modeTimer == 1:
             thisGame.SetMode(7)
             oldEdgeLightColor = thisLevel.edgeLightColor
             oldEdgeShadowColor = thisLevel.edgeShadowColor
@@ -140,7 +148,7 @@ while True:
             thisGame.SetMode(10)
 
     elif thisGame.mode == 8:
-        CheckInputs()
+        CheckInputs(aiMove())
         ghostState = 1
         thisGame.modeTimer += 1
 
@@ -167,7 +175,7 @@ while True:
         thisFruit.Move()
 
     elif thisGame.mode == 9:
-        CheckInputs()
+        CheckInputs(aiMove())
         thisGame.modeTimer += 1
 
         player.Move()
@@ -232,4 +240,5 @@ while True:
     pygame.display.update()
     del rect_list[:]
 
-    clock.tick(40)
+    clock.tick(40 + aiTraining * 1000)
+ 
