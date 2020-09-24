@@ -29,6 +29,8 @@ import random
 # make random move RIGHT, LEFT, DOWN o UP 
 def aiMove():
     move = ['RIGHT', 'LEFT', 'DOWN', 'UP']  
+    if thisGame.mode == 3:
+        return 'ENTER'
     return random.choice(move)
 
 
@@ -75,18 +77,19 @@ while True:
         if aiTraining or thisGame.modeTimer == 60: #Change to 60 for longer pause
             thisLevel.Restart()
 
+            print('lives: ', thisGame.lives)
             thisGame.lives -= 1
             if thisGame.lives == -1:
-                thisGame.updatehiscores(thisGame.score)
+                #thisGame.updatehiscores(thisGame.score)
                 thisGame.SetMode(3)
-                thisGame.drawmidgamehiscores()
+                #thisGame.drawmidgamehiscores()
             else:
                 thisGame.SetMode(4)
 
     elif thisGame.mode == 3:
         # game over
-        thisGame.StartNewGame() # comment this to not instant restart
-        CheckInputs()
+        #thisGame.start
+        CheckInputs(aiMove())
 
     elif thisGame.mode == 4:
         # waiting to start
@@ -136,7 +139,7 @@ while True:
             thisGame.SetMode(10)
 
     elif thisGame.mode == 8:
-        CheckInputs()
+        CheckInputs(aiMove())
         ghostState = 1
         thisGame.modeTimer += 1
 
@@ -163,7 +166,7 @@ while True:
         thisFruit.Move()
 
     elif thisGame.mode == 9:
-        CheckInputs()
+        CheckInputs(aiMove())
         thisGame.modeTimer += 1
 
         player.Move()

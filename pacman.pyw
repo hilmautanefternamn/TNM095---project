@@ -61,7 +61,7 @@ IMG_PELLET_COLOR = (128, 0, 128, 255)
 # currently only "23" for the high-score list
 NO_GIF_TILES = [23]
 
-NO_WX = 0  # if set, the high-score code will not attempt to ask the user his name
+NO_WX = 1  # if set, the high-score code will not attempt to ask the user his name
 USER_NAME = "User"  # USER_NAME=os.getlogin() # the default user name if wx fails to load or NO_WX
 
 # Joystick defaults - maybe add a Preferences dialog in the future?
@@ -162,8 +162,7 @@ class game:
 
     @staticmethod
     def defaulthiscorelist():
-        return [(100000, "David"), (80000, "Andy"), (60000, "Count Pacula"), (40000, "Cleopacra"),
-                (20000, "Brett Favre"), (10000, "Sergei Pachmaninoff")]
+        return [(100000, "Simon"), (80000, "Hilma"), (60000, "Lisa")]
 
     @staticmethod
     def writehiscores(hs):
@@ -252,7 +251,7 @@ class game:
 
     def drawmidgamehiscores(self):
         """Redraw the high-score list image after pacman dies."""
-        self.imHiscores = self.makehiscorelist()
+       # self.imHiscores = self.makehiscorelist()
 
     def StartNewGame(self):
         self.levelNum = 1
@@ -746,8 +745,11 @@ class ghost:
     def FollowNextPathWay(self):
         # print "Ghost " + str(self.id) + " rem: " + self.currentPath
         # only follow this pathway if there is a possible path found!
+        counter = 0
+        if counter > 10:
+            self.state = 1
         if not self.currentPath == False:
-
+            counter += 1
             if len(self.currentPath) > 0:
                 if self.currentPath[0] == "L":
                     (self.velX, self.velY) = (-self.speed, 0)
@@ -1490,7 +1492,7 @@ def CheckInputs(aiMove = 0):
         sys.exit(0)
 
     elif thisGame.mode == 3:
-      if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)): #add this to have a main menu
+      if pygame.key.get_pressed()[pygame.K_RETURN] or (js is not None and js.get_button(JS_STARTBUTTON)) or (aiMove == 'ENTER'): #add this to have a main menu
         thisGame.StartNewGame()
 
 
