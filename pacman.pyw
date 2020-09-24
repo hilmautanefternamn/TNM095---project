@@ -433,7 +433,9 @@ class path_finder:
 
         thisLowestFNode = None
         doContinue = True
+        
         while doContinue:
+ 
 
             thisLowestFNode = self.GetLowestFNode()
 
@@ -742,14 +744,15 @@ class ghost:
                                                  (player.nearestRow, player.nearestCol))
                 self.FollowNextPathWay()
 
+
     def FollowNextPathWay(self):
-        # print "Ghost " + str(self.id) + " rem: " + self.currentPath
+        print("Ghost ", str(self.id), " rem: ", self.currentPath)
+
         # only follow this pathway if there is a possible path found!
-        counter = 0
-        if counter > 10:
-            self.state = 1
+        if self.currentPath == None or self.currentPath == '':
+            print("hej")
+            # self.currentPath = False
         if not self.currentPath == False:
-            counter += 1
             if len(self.currentPath) > 0:
                 if self.currentPath[0] == "L":
                     (self.velX, self.velY) = (-self.speed, 0)
@@ -764,9 +767,10 @@ class ghost:
                 # this ghost has reached his destination!!
                 if not self.state == 3:
                     # chase pac-man
-                    self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
-                                                     (player.nearestRow, player.nearestCol))
-                    self.FollowNextPathWay()
+                    if (self.nearestCol and self.nearestRow and player.nearestRow and player.nearestCol):
+                        self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
+                                                         (player.nearestRow, player.nearestCol))
+                        self.FollowNextPathWay()
 
                 else:
                     # glasses found way back to ghost box

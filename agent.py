@@ -77,7 +77,6 @@ while True:
         if aiTraining or thisGame.modeTimer == 60: #Change to 60 for longer pause
             thisLevel.Restart()
 
-            print('lives: ', thisGame.lives)
             thisGame.lives -= 1
             if thisGame.lives == -1:
                 #thisGame.updatehiscores(thisGame.score)
