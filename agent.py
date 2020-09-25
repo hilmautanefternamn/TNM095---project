@@ -53,15 +53,9 @@ reward = 0
 nextState = -1
 action = ''
 
-# DUMMY INIT
-def initAgent():
-    calculate_features()
-    nextState = feature_to_state()
-    action = 'LEFT' # dummy action
 
 
-if nextState < 0:
-    initAgent()
+
 
 #####################   FEATURE DEFINITIONS    ######################
 #           COMPUTE GHOST/PELLET/ENERGIZER DISTANCE                 #
@@ -114,6 +108,14 @@ def feature_to_state():
     return state
 
 
+# DUMMY INIT
+def initAgent():
+    calculate_features()
+    nextState = feature_to_state()
+    action = 'LEFT' # dummy action
+
+
+
 def get_reward(action):
     
     # Eating a pellet:
@@ -137,29 +139,6 @@ def load_qtable_from_file():
 def save_qtable_to_file():
     np.save("qtable", Q_table)
 
-# update Q_table
-# currentState: result of last performed action -> previousAction
-# nextState: result of the new action to be performed -> action
-def update_qtable(previousAction, currentState, nextState):
-    qState = Q_table[currentState]
-    new_qState = Q_table[nextState]
-    
-    maxQ = np.max(new_qState)
-
-    
-    # Q(s,a) <- (1-alpha)Q(s,a) + alpha*sample
-    # s = previous state
-    # a = previous action
-    # alpha = learning rate
-
-    # sample = R(s,a,s') + gamma*max( Q(s',a') )      
-    # s' = new state
-    # gamma = discount factor
-    # a'= action that maximizes Q-value for new state (s')
-    
-
-    # save updated version
-    save_qtable_to_file()
 
 
 #####################   ACTIONS HANDLING    #####################
@@ -208,6 +187,32 @@ def get_best_action(actions):
                 bestAction = action
 
     return bestAction
+
+
+# update Q_table
+# currentState: result of last performed action -> previousAction
+# nextState: result of the new action to be performed -> action
+def update_qtable(previousAction, currentState, nextState):
+    qState = Q_table[currentState]
+    new_qState = Q_table[nextState]
+    
+    maxQ = np.max(new_qState)
+
+    
+    # Q(s,a) <- (1-alpha)Q(s,a) + alpha*sample
+    # s = previous state
+    # a = previous action
+    # alpha = learning rate
+
+    # sample = R(s,a,s') + gamma*max( Q(s',a') )      
+    # s' = new state
+    # gamma = discount factor
+    # a'= action that maximizes Q-value for new state (s')
+    
+
+    # save updated version
+    save_qtable_to_file()
+
 
 
 #####################   MOVE AGENT IN GUI    ####################
@@ -267,6 +272,10 @@ def aiMove():
 
 aiTraining = 1
 deaths = 0
+
+if nextState < 0:
+    initAgent()
+
 
 #####################   MAIN GAME LOOP    ###################
 #                                                           #

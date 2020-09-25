@@ -750,14 +750,12 @@ class ghost:
     def FollowNextPathWay(self):
       #  print("Ghost ", str(self.id), " rem: ", self.currentPath)
 
-        # only follow this pathway if there is a possible path found!
-        if self.currentPath == None or self.currentPath == '':
-         #   print("hej, currentPath should be empty: ", self.currentPath)
-            self.count += 1
-        #    print("counter", self.count)
-            #self.currentPath = False
 
-            # move ghost back to home
+        if self.currentPath == None or self.currentPath == '':
+            self.count += 1
+            #print('path is empty, count: ', self.count)
+           
+            # move ghost back to home if path has been empty 10 times in a row
             if self.count >= 10:
                 ghosts[self.id].x = ghosts[self.id].homeX
                 ghosts[self.id].y = ghosts[self.id].homeY
@@ -768,12 +766,13 @@ class ghost:
                 ghosts[self.id].Move()
 
             # chase pac-man
-            self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
-                                                (player.nearestRow, player.nearestCol))
-         #   print('tryin to find new path: ', self.currentPath)
-        else:   
+                self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
+                                                    (player.nearestRow, player.nearestCol))
+        #print('tryin to find new path: ', self.currentPath)
+        else:
             self.count = 0
 
+        # only follow this pathway if there is a possible path found!
         if not self.currentPath == False:
             if len(self.currentPath) > 0:
                 if self.currentPath[0] == "L":
