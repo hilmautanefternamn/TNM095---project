@@ -26,6 +26,7 @@ import sys
 import pygame
 from pygame.locals import *
 
+
 # WIN???
 if os.name == "nt":
     SCRIPT_PATH = os.getcwd()
@@ -433,7 +434,9 @@ class path_finder:
 
         thisLowestFNode = None
         doContinue = True
+        
         while doContinue:
+ 
 
             thisLowestFNode = self.GetLowestFNode()
 
@@ -640,6 +643,7 @@ class ghost:
 
         self.animFrame = 1
         self.animDelay = 0
+        self.count = 0
 
     def Draw(self):
         global rect_list
@@ -742,14 +746,34 @@ class ghost:
                                                  (player.nearestRow, player.nearestCol))
                 self.FollowNextPathWay()
 
+
     def FollowNextPathWay(self):
-        # print "Ghost " + str(self.id) + " rem: " + self.currentPath
+        print("Ghost ", str(self.id), " rem: ", self.currentPath)
+
         # only follow this pathway if there is a possible path found!
-        counter = 0
-        if counter > 10:
-            self.state = 1
+        if self.currentPath == None or self.currentPath == '':
+            print("hej, currentPath should be empty: ", self.currentPath)
+            self.count += 1
+            #self.currentPath = False
+
+            # move ghost back to home
+            if self.count >= 10:
+                ghosts[self.id].x = ghosts[self.id].homeX
+                ghosts[self.id].y = ghosts[self.id].homeY
+                ghosts[self.id].velX = 0
+                ghosts[self.id].velY = 0
+                ghosts[self.id].state = 1
+                ghosts[self.id].speed = 2
+                ghosts[self.id].Move()
+
+            # chase pac-man
+            self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
+                                                (player.nearestRow, player.nearestCol))
+            print('tryin to find new path: ', self.currentPath)
+
+
         if not self.currentPath == False:
-            counter += 1
+            self.count = 0
             if len(self.currentPath) > 0:
                 if self.currentPath[0] == "L":
                     (self.velX, self.velY) = (-self.speed, 0)
@@ -764,9 +788,10 @@ class ghost:
                 # this ghost has reached his destination!!
                 if not self.state == 3:
                     # chase pac-man
-                    self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
-                                                     (player.nearestRow, player.nearestCol))
-                    self.FollowNextPathWay()
+                    if (self.nearestCol and self.nearestRow and player.nearestRow and player.nearestCol):
+                        self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
+                                                         (player.nearestRow, player.nearestCol))
+                        self.FollowNextPathWay()
 
                 else:
                     # glasses found way back to ghost box
