@@ -748,12 +748,13 @@ class ghost:
 
 
     def FollowNextPathWay(self):
-        print("Ghost ", str(self.id), " rem: ", self.currentPath)
+      #  print("Ghost ", str(self.id), " rem: ", self.currentPath)
 
         # only follow this pathway if there is a possible path found!
         if self.currentPath == None or self.currentPath == '':
-            print("hej, currentPath should be empty: ", self.currentPath)
+         #   print("hej, currentPath should be empty: ", self.currentPath)
             self.count += 1
+        #    print("counter", self.count)
             #self.currentPath = False
 
             # move ghost back to home
@@ -769,11 +770,11 @@ class ghost:
             # chase pac-man
             self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
                                                 (player.nearestRow, player.nearestCol))
-            print('tryin to find new path: ', self.currentPath)
-
+         #   print('tryin to find new path: ', self.currentPath)
+        else:   
+            self.count = 0
 
         if not self.currentPath == False:
-            self.count = 0
             if len(self.currentPath) > 0:
                 if self.currentPath[0] == "L":
                     (self.velX, self.velY) = (-self.speed, 0)
