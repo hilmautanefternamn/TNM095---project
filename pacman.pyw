@@ -1165,7 +1165,7 @@ class level:
                     if result == tileID['pellet']:
                         # got a pellet
                         thisLevel.SetMapTile((iRow, iCol), 0)
-                        snd_pellet[player.pelletSndNum].play()
+                        #snd_pellet[player.pelletSndNum].play()
                         player.pelletSndNum = 1 - player.pelletSndNum
 
                         thisLevel.pellets -= 1
@@ -1234,6 +1234,7 @@ class level:
 
                     elif result == tileID['heart']:
                         thisGame.SetMode(11)
+                    return result
 
     def GetGhostBoxPos(self):
         for row in range(0, self.lvlHeight, 1):
