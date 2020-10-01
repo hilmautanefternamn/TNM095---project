@@ -36,7 +36,7 @@ import random
 import numpy as np 
 
 # global constants
-NUM_FEATURES = 2    # states = 2^NUM_FEATURES = 
+NUM_FEATURES = 3    # states = 2^NUM_FEATURES = 
 NUM_ACTIONS = 4     # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
 LEARNING_RATE = 0.5 # alpha [0,1]
@@ -74,14 +74,39 @@ def ghost_distance(state = 1):
                 return 1
     return 0
 
-# TODO: we are here        
+      
 # compute distance to closest food pellet
 # return 1 if closer than threshold and 0 otherwise
 def pellet_distance():
+    
+    # from pacman.pyw
+    TILE_WIDTH = TILE_HEIGHT = 24
+    # self.nearestRow = int(((self.y + (TILE_WIDTH / 2)) / TILE_WIDTH))
+    # self.nearestCol = int(((self.x + (TILE_HEIGHT / 2)) / TILE_HEIGHT))
 
+
+    # check if tile contains pellet
+    # GetMapTile((row, col)) == tileID['pellet']
+
+    # Loop grid around Pacman
+    radius = 4
+    for r in range(-radius, radius + 2):        # we add with 2 cuz he did it in the game
+        for c in range(-radius, radius + 2):
+        
+            row = int(((player.y + r*(TILE_WIDTH / 2)) / TILE_WIDTH))
+            col = int(((player.x + c*(TILE_HEIGHT / 2)) / TILE_HEIGHT))
+
+            # pacman's position'
+            if (r == 0) and (c == 0):
+                continue
+
+            if (thisLevel.GetMapTile((row, col)) == tileID['pellet']):
+                return 1
+    
     return 0
 
-#####################   FEATURE  & REWARD COMPUTATIONS    ###################
+
+#####################   FEATURE & REWARD COMPUTATIONS    ####################
 #       BINARY RESULTS FOR EACH FEATURE & POS/NEG REWARDS FOR ACTIONS       #
 #############################################################################
 #
@@ -103,8 +128,8 @@ def calculate_features(pos = []):
     idx += 1
 
     # food pellet close!
-    # features[idx] = pellet_distance()
-    # idx += 1
+    features[idx] = pellet_distance()
+    idx += 1
 
 def feature_to_state():
     state = 0
@@ -113,6 +138,8 @@ def feature_to_state():
         state += 1
     if(features[1] == 1):
         state += 2
+    if(features[2] == 1):
+        state += 4
 
     return state
 
@@ -126,12 +153,12 @@ def get_reward():
     if hitByGhost == 1:
         rwd -= 10
         hitByGhost = 0
-        print('pacman lost a life')
+        #print('pacman lost a life')
 
     # Eating a pellet
     if currentPelletCount > thisLevel.pellets:
         rwd += 1
-        print('pacman ate a pellet')
+        #print('pacman ate a pellet')
 
     currentPelletCount = thisLevel.pellets
          
@@ -142,19 +169,20 @@ def get_reward():
     if ateGhost == 1:
         rwd += 10
         ateGhost = 0
-        print('pacman ate a ghost')
+        #print('pacman ate a ghost')
         
     
     # Time step: 
-    # rwd -= 1
+    rwd -= 1
 
     # Revisit previous/empty positions:
     # prevprev & previousAction are opposite
     
     # for testing
     #rwd = 5
-    if rwd != 0:
-        print('reward: ', rwd)
+    #if rwd != 0:
+        # print('reward: ', rwd)
+
     return rwd
     
 
@@ -227,7 +255,7 @@ def get_best_action(possibleActions, currentState):
             bestAction = action
             maxVal = qvalues[action]
 
-    print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
+    #print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
     return ACTIONS[bestAction]  # return action as string
     
 
@@ -272,6 +300,7 @@ def aiMove():
     global previousAction, previousState
     #print('normal ghost', features[0])
     #print('vulnerable ghost', features[1])
+    print('close pellet', features[2])
     #print('ghost to the right: ', check_close_ghost('RIGHT'))
     #print('ghost to the left: ', check_close_ghost('LEFT'))
     #print('ghost to the up: ', check_close_ghost('UP'))
@@ -297,7 +326,7 @@ def aiMove():
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
         action = random.choice(possibleActions)
-        print('random move')
+        # print('random move')
     else:
         action = get_best_action(possibleActions, currentState)    # Q(a', s')
     
@@ -327,7 +356,7 @@ aiTraining = 1
 deaths = 0
 
 # load previous Q-table
-load_qtable_from_file()
+#load_qtable_from_file()
 print(Q_table)
 
 # initAgent - creating dummy action and first state
@@ -533,5 +562,5 @@ while True:
     pygame.display.update()
     del rect_list[:]
 
-    clock.tick(40 + aiTraining * 1)
+    clock.tick(40 + aiTraining * 100)
  

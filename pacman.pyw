@@ -751,7 +751,7 @@ class ghost:
       #  print("Ghost ", str(self.id), " rem: ", self.currentPath)
 
 
-        if self.currentPath == None or self.currentPath == '':
+        if self.currentPath == None or self.currentPath == '': #and ghosts[self.id].state == 1
             self.count += 1
             #print('path is empty, count: ', self.count)
            
@@ -761,7 +761,7 @@ class ghost:
                 ghosts[self.id].y = ghosts[self.id].homeY
                 ghosts[self.id].velX = 0
                 ghosts[self.id].velY = 0
-                ghosts[self.id].state = 1
+                #ghosts[self.id].state = 1
                 ghosts[self.id].speed = 2
                 ghosts[self.id].Move()
 
@@ -788,10 +788,9 @@ class ghost:
                 # this ghost has reached his destination!!
                 if not self.state == 3:
                     # chase pac-man
-                    if (self.nearestCol and self.nearestRow and player.nearestRow and player.nearestCol):
-                        self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
-                                                         (player.nearestRow, player.nearestCol))
-                        self.FollowNextPathWay()
+                    self.currentPath = path.FindPath((self.nearestRow, self.nearestCol),
+                                                     (player.nearestRow, player.nearestCol))
+                    self.FollowNextPathWay()
 
                 else:
                     # glasses found way back to ghost box
