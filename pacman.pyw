@@ -437,7 +437,6 @@ class path_finder:
         
         while doContinue:
  
-
             thisLowestFNode = self.GetLowestFNode()
 
             if thisLowestFNode != self.end and thisLowestFNode != False:
