@@ -131,7 +131,7 @@ class game:
     def __init__(self):
         self.levelNum = 0
         self.score = 0
-        self.lives = 3
+        self.lives = 0  # originally 3
 
         self.mode = 0
         self.modeTimer = 0
@@ -257,7 +257,7 @@ class game:
     def StartNewGame(self):
         self.levelNum = 1
         self.score = 0
-        self.lives = 3
+        self.lives = 0  # originally 3
 
         self.SetMode(0)
         thisLevel.LoadLevel(thisGame.GetLevelNum())

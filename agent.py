@@ -36,12 +36,12 @@ import random
 import numpy as np 
 
 # global constants
-NUM_FEATURES = 16   # states = 2^NUM_FEATURES = 
-NUM_ACTIONS = 4     # RIGHT, LEFT, DOWN or UP 
+NUM_FEATURES = 16       # states = 2^NUM_FEATURES
+NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.5 # alpha [0,1]
-EXPLORATION_RATE = 0.5
-DISCOUNT = 0.8 # gamma [0,1]
+LEARNING_RATE = 0.5     # alpha [0,1]
+EXPLORATION_RATE = 0.5  # [0,1]
+DISCOUNT = 0.8          # gamma [0,1]
 
 Q_table = np.zeros([2**NUM_FEATURES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -79,7 +79,7 @@ def ghost_distance(action, state):
                 minDist = distance
     return minDist
 
-# get which action gives the smallest distance to closest ghost
+# get action giving the smallest distance to closest ghost
 def closest_ghost_dir(state = 1):
     distance = []
     # find minDist to closest ghost for each action
@@ -112,7 +112,8 @@ def pellet_distance(action, radius = 1, pelletType = 'pellet'):
     
     return minDist
 
-# get which action gives the smallest distance to the closest pellet
+# get action giving the smallest distance to the closest pellet
+# pelletType: 'pellet', 'pellet-power'
 def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
     distance = []
     for action in ACTIONS:
@@ -214,7 +215,7 @@ def feature_to_state():
 # compare two following actions, return true if directions are opposite and false otherwise
 #Good programming etc.
 def opposite_directions(dir1, dir2):
-    if dir1 == 'RIGHT' and dir2 == 'LEFT' or dir1 == 'RIGHT' and dir2 == 'LEFT':
+    if dir1 == 'RIGHT' and dir2 == 'LEFT' or dir1 == 'LEFT' and dir2 == 'RIGHT':
         return True
     if dir1 == 'UP' and dir2 == "DOWN" or dir1 == "DOWN" and dir2 == "UP":
         return True
@@ -261,7 +262,8 @@ def get_reward():
 
     return reward
 
-def transition_reward():
+def transition_reward(action):
+    global returnCounter
     reward = 0
 
     # pellet was close & ghosts were not, pacman stayed in the same direction
@@ -272,8 +274,9 @@ def transition_reward():
     #else: 
     #    towardsPellet = 0
 
-    # returned to previous position
-    if opposite_directions(prepreAction, previousAction):
+
+    # action will cause Pacman to return to previous position
+    if opposite_directions(previousAction, action):
         returnCounter += 1
         #print('Pacman does the ping pong!')
         reward -= 2 * returnCounter
@@ -289,13 +292,14 @@ def transition_reward():
 # load npy-file with q-table to variable Q_table (states x actions)
 def load_qtable_from_file():
     global Q_table
-    loaded_qtable = np.load("qtable.npy")
+    loaded_qtable = np.load("q_table.npy")
     assert loaded_qtable.shape == Q_table.shape, "Q-table sizes do not agree"
     Q_table = loaded_qtable
 
 # update npy-file with current content of variable Q_table
 def save_qtable_to_file():
-    np.save("qtable", Q_table)
+    np.save("q_table.npy", Q_table, allow_pickle=False)
+    #np.save(r"E:\Skola\AI\TNM095---project\qtable2.npy", Q_table, allow_pickle=False)
 
 
 #####################   ACTIONS HANDLING    #####################
@@ -345,9 +349,14 @@ def get_best_action(possibleActions, currentState):
     # get Q-value for each action in current state 
     qvalues = [q_val for q_val in Q_table[currentState]]
 
-    # get possible action with highest Q-value
+    # get possible action with highest Q-value + transition reward
     for action in possibleActions:
-        if qvalues[action] > maxVal:
+        transVal =  transition_reward(ACTIONS[action])
+
+        # print('pre: ', previousAction, ' , action: ', ACTIONS[action])
+        # print('trans: ', transVal)
+
+        if qvalues[action] + transVal > maxVal:
             bestAction = action
             maxVal = qvalues[action]
 
@@ -440,8 +449,12 @@ def aiMove():
 aiTraining = 1
 deaths = 0
 
+# KOLLA numpy.savetxt
+# spara till läslig textfil
+
 # load previous Q-table
 load_qtable_from_file()
+# np.set_printoptions(threshold=np.inf)
 print(Q_table)
 
 # initAgent - creating dummy action and first state
@@ -482,25 +495,25 @@ while True:
         if aiTraining or thisGame.modeTimer == 60: #Change to 60 for longer pause
             thisLevel.Restart()
             thisGame.lives -= 1
-            thisGame.SetMode(4)
-            #if thisGame.lives == -1:
-            #    deaths += 1
-            #    # write game data to file 
-            #    file = open('pacman_run_data.txt','a') 
-            #    file.write('-----------------------------\n')
-            #    file.write('---------- death ' + str(deaths) + ' ----------\n')
-            #    file.write('-----------------------------\n')
-            #    file.write('score: ' + str(thisGame.score) + '\n')
-            #    file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
-            #    file.close()
-            #    #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
-            #    #file.writelines(L) 
+         
+            if thisGame.lives == -1:
+                deaths += 1
+                # write game data to file 
+                file = open('pacman_run_data.txt','a') 
+                file.write('-----------------------------\n')
+                file.write('---------- death ' + str(deaths) + ' ----------\n')
+                file.write('-----------------------------\n')
+                file.write('score: ' + str(thisGame.score) + '\n')
+                file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+                file.close()
+                #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
+                #file.writelines(L) 
 
-            #    thisGame.updatehiscores(thisGame.score)
-            #    thisGame.SetMode(3)
-            #    thisGame.drawmidgamehiscores()
-            # else:
-            #    thisGame.SetMode(4)
+                #thisGame.updatehiscores(thisGame.score)
+                thisGame.SetMode(3)
+                #thisGame.drawmidgamehiscores()
+             #else:
+                #thisGame.SetMode(4)
 
     elif thisGame.mode == 3:
         # game over
@@ -649,5 +662,5 @@ while True:
     pygame.display.update()
     del rect_list[:]
 
-    clock.tick(40 + aiTraining * 1000)
+    clock.tick(40 + aiTraining * 999999)
  
