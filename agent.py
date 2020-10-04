@@ -36,14 +36,15 @@ import random
 import numpy as np 
 
 # global constants
-NUM_FEATURES = 16       # states = 2^NUM_FEATURES
+NUM_FEATURES = 16    
+NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.6     # alpha [0,1]
-EXPLORATION_RATE = 0.9  # [0,1]
-DISCOUNT = 0.5          # gamma [0,1]
+LEARNING_RATE = 0.8     # alpha [0,1]
+EXPLORATION_RATE = 0.5  # [0,1]
+DISCOUNT = 0.7          # gamma [0,1]
 
-Q_table = np.zeros([2**NUM_FEATURES, NUM_ACTIONS])
+Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
 
 # global variables
@@ -145,21 +146,22 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
 # features[?]: will be 1 if time of closest vulnerable ghost is short
 def calculate_features(pos = []):
     idx = 0   
-    GHOSTCLOSE = 120 # ~ 5 tiles away
+    GHOSTCLOSE = 35 # ~ 5 tiles away TODO: set to 120
 
     # normal ghost distance for every action
-    ghostDirection, minDist = closest_ghost_dir()
+    ghostDirection, ghostDist = closest_ghost_dir()
     for action in ACTIONS:
-        if minDist < GHOSTCLOSE and action == ghostDirection:
+        if ghostDist < GHOSTCLOSE and action == ghostDirection:
             features[idx] = 1
         else:
             features[idx] = 0
         idx += 1
 
     # vulnerable ghost distance for every action
-    ghostDirection, ghostDist = closest_ghost_dir(2)  # state = 2
+    vghostDirection, vghostDist = closest_ghost_dir(2)  # state = 2
+    # TODO: what happens when blue ghost doesnt exist or disappear?
     for action in ACTIONS:
-        if minDist < GHOSTCLOSE and action == ghostDirection:
+        if vghostDist < GHOSTCLOSE and action == vghostDirection:
             features[idx] = 1
         else:
             features[idx] = 0
@@ -187,38 +189,81 @@ def calculate_features(pos = []):
 def feature_to_state():
     state = 0
 
+    # Ghost
     if(features[0] == 1):
         state += 1
     if(features[1] == 1):
         state += 2
     if(features[2] == 1):
-        state += 4
+        state += 3
     if(features[3] == 1):
-        state += 8
+        state += 4
+    
+    # Vulnerable ghost
     if(features[4] == 1):
-        state += 16
+        state += 5
     if(features[5] == 1):
-        state += 32
+        state += 10
     if(features[6] == 1):
-        state += 64
+        state += 15
     if(features[7] == 1):
-        state += 128
+        state += 20
+    
+    # Pellet
     if(features[8] == 1):
-        state += 256
+        state += 25
     if(features[9] == 1):
-        state += 512
+        state += 50
     if(features[10] == 1):
-        state += 1024
+        state += 75
     if(features[11] == 1):
-        state += 2048
+        state += 100
+   
+    # Power pellet
     if(features[12] == 1):
-        state += 4096
+        state += 125
     if(features[13] == 1):
-        state += 8192
+        state += 250
     if(features[14] == 1):
-        state += 16384
+        state += 375
     if(features[15] == 1):
-        state += 32768
+        state += 500
+
+
+
+
+    # if(features[0] == 1):
+    #     state += 1
+    # if(features[1] == 1):
+    #     state += 2
+    # if(features[2] == 1):
+    #     state += 4
+    # if(features[3] == 1):
+    #     state += 8
+    # if(features[4] == 1):
+    #     state += 16
+    # if(features[5] == 1):
+    #     state += 32
+    # if(features[6] == 1):
+    #     state += 64
+    # if(features[7] == 1):
+    #     state += 128
+    # if(features[8] == 1):
+    #     state += 256
+    # if(features[9] == 1):
+    #     state += 512
+    # if(features[10] == 1):
+    #     state += 1024
+    # if(features[11] == 1):
+    #     state += 2048
+    # if(features[12] == 1):
+    #     state += 4096
+    # if(features[13] == 1):
+    #     state += 8192
+    # if(features[14] == 1):
+    #     state += 16384
+    # if(features[15] == 1):
+    #     state += 32768
 
     return state
 
@@ -313,14 +358,20 @@ def transition_reward(action):
 # load npy-file with q-table to variable Q_table (states x actions)
 def load_qtable_from_file():
     global Q_table
-    loaded_qtable = np.load("q_table_simon.npy")
+    loaded_qtable = np.load("q_table_lisa.npy")
     assert loaded_qtable.shape == Q_table.shape, "Q-table sizes do not agree"
     Q_table = loaded_qtable
 
 # update npy-file with current content of variable Q_table
 def save_qtable_to_file():
-    np.save("q_table_simon.npy", Q_table, allow_pickle=True)
+    np.save("q_table_lisa.npy", Q_table, allow_pickle=True)
     #np.save(r"E:\Skola\AI\TNM095---project\qtable2.npy", Q_table, allow_pickle=False)
+
+def print_qtable():
+    # global Q_table
+    np.set_printoptions(threshold=np.inf)
+    print(Q_table)
+
 
 
 #####################   ACTIONS HANDLING    #####################
@@ -472,16 +523,16 @@ def aiMove():
 # 10 = blank screen before changing levels
 
 # KOLLA numpy.savetxt
-# spara till läslig textfil
+# spara till leslig textfil
 
 # load previous Q-table
-#load_qtable_from_file()
+load_qtable_from_file()
 # np.set_printoptions(threshold=np.inf)
-print(Q_table)
+print_qtable()
 
 # initAgent - creating dummy action and first state
 if previousState < 0:
-    previousAction = 'LEFT' # dummy action
+    previousAction = 'UP' # dummy action
     calculate_features()
     previousState = feature_to_state()
 
