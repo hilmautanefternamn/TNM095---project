@@ -50,7 +50,7 @@ features = np.zeros([NUM_FEATURES]).astype(int) # binary
 # global variables
 previousState = -1
 previousAction = 'LEFT'
-prepreAction = 'LEFT'
+prepreAction = 'RIGHT'
 currentPelletCount = 140
 hitByGhost = 0
 ateGhost = 0
@@ -60,7 +60,6 @@ atePowerPellet = 0
 
 aiTraining = 1
 deaths = 0
-
 
 #####################   FEATURE DEFINITIONS    ######################
 #           COMPUTE GHOST/PELLET/ENERGIZER DISTANCE                 #
@@ -80,6 +79,7 @@ def closest_ghost_dir(state = 1):
     
     for i in range(0, 4, 1):
         if ghosts[i].state == state:
+
             row = ghosts[i].nearestRow 
             col = ghosts[i].nearestCol 
 
@@ -153,7 +153,7 @@ def calculate_features(pos = []):
         idx += 1
 
     # food pellet distance for every action
-    pelletDirection, pelletDist = closest_pellet_dir(2)
+    pelletDirection, pelletDist = closest_pellet_dir()
     for action in ACTIONS:
         if pelletDist < 9999 and action == pelletDirection:
             features[idx] = 1
@@ -263,30 +263,26 @@ def opposite_directions(dir1, dir2):
     return False
 
 # compute reward from the feature vector in the current state
-# R(s,a,s')     s -a-> s' => Q
-# s : previousState
-# a : previousAction
-# s' : currentState
 def get_reward():
-    global currentPelletCount, hitByGhost, ateGhost, towardsPellet, atePowerPellet
+    global currentPelletCount, hitByGhost, ateGhost, towardsPellet, returnCounter, atePowerPellet
     
     reward = 0
    
     # Lost a life
     if hitByGhost == 1:
-        reward -= 15
+        reward -= 10
         hitByGhost = 0
         #print('pacman lost a life')
 
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
-        reward += 3
+        reward += 2
         #print('pacman ate a pellet')
     currentPelletCount = thisLevel.pellets
 
     # Ate a ghost
     if ateGhost == 1:
-        reward += 2
+        reward += 10
         ateGhost = 0
         #print('pacman ate a ghost')
     
@@ -294,36 +290,31 @@ def get_reward():
     if atePowerPellet == 1:
        reward += 5
        atePowerPellet = 0
+         
+    # thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
+    # rwd -= 1
 
-    # Went towards pellet
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-        if features[i] == 1 and ACTIONS[i%8] == previousAction:
-            reward += 1
-            #print('Pacman is going for the pellet!')
-        
+    # Time step passed 
+    # reward -= 1
+    
     #if rwd != 0:
      #   print('reward: ', rwd)
 
-    # reward += transition_reward(prepreAction)
-
     return reward
 
-# compute transition reward to help choose best possible action
 def transition_reward(action):
     global returnCounter
     reward = 0
 
-    # no pellet dir found - keep walking in the same direction
-    foundPelletDir = 0
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-        if features[i] == 1:
-            foundPelletDir = 1
-        
-    if foundPelletDir == 0 and previousAction == action: 
-        reward += 2
-        #print('pacman is searching for a pellet')
+    # pellet was close & ghosts were not, pacman stayed in the same direction
+    #if pellet_distance() == 1 and ghost_distance() == 0 and previousAction == prepreAction:
+    #    towardsPellet += 1
+        #print('Pacman is going for the pellet!')
+    #    reward += (2*towardsPellet)
+    #else: 
+    #    towardsPellet = 0
 
-    
+
     # action will cause Pacman to return to previous position
     if opposite_directions(previousAction, action):
         returnCounter += 1
@@ -331,8 +322,6 @@ def transition_reward(action):
         reward -= 2 * returnCounter
     else: 
         returnCounter = 0
-
-    # thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
 
     return reward
     
@@ -364,11 +353,11 @@ def print_qtable():
 #################################################################
 # get the actions from all actions that are possible
 # that do not cause pacman to walk into walls
-def get_possible_actions():
+def get_possible_actions(ACTIONS):
     possible_actions = []
     for action in ACTIONS:
-        dirX, dirY = translateAction(action)  # RIGHT -> [x,y]
-        if not thisLevel.CheckIfHitWall((player.x + dirX, player.y + dirY), (player.nearestRow, player.nearestCol)):
+        move = translateAction(action)  # RIGHT -> [x,y]
+        if not thisLevel.CheckIfHitWall((player.x + move[0], player.y + move[1]), (player.nearestRow, player.nearestCol)):
             possible_actions.append( actionToInt(action) )
 
     return possible_actions
@@ -465,11 +454,10 @@ def update_qtable(previousAction, previousState, currentState):
 #       RETURNS RIGHT, LEFT, DOWN or UP TO GAME LOGIC           #
 #################################################################
 def aiMove():
-    global prepreAction, previousAction, previousState, deaths
+    global prepreAction, previousAction, previousState
 
    # s -a-> s' => Q
    # s : previousState
-   # a : previousAction
    # s' : currentState
 
     # update features and get the current state
@@ -480,17 +468,14 @@ def aiMove():
     update_qtable(previousAction, previousState, currentState)
 
     # get possible actions for current state
-    possibleActions = get_possible_actions()
-    
+    possibleActions = get_possible_actions(ACTIONS)
+
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
         action = ACTIONS[random.choice(possibleActions)]
         # print('random move')
     else:
         action = get_best_action(possibleActions, currentState)    # Q(a', s')
-
-    if EXPLORATION_RATE > 0 and deaths%100 == 0:
-        EXPLORATION_RATE - 0.1
 
     
     previousState = currentState
@@ -517,9 +502,6 @@ def aiMove():
 # 8 = extra pacman, small ghost mode
 # 9 = changed ghost to glasses
 # 10 = blank screen before changing levels
-
-# KOLLA numpy.savetxt
-# spara till leslig textfil
 
 # load previous Q-table
 load_qtable_from_file()
@@ -568,7 +550,7 @@ while True:
             if thisGame.lives == -1:
                 deaths += 1
                 # write game data to file 
-                file = open('pacman_run_data.txt','a') 
+                file = open('hilmas_run_data.txt','a') 
                 file.write('-----------------------------\n')
                 file.write('---------- death ' + str(deaths) + ' ----------\n')
                 file.write('-----------------------------\n')
@@ -731,5 +713,7 @@ while True:
     pygame.display.update()
     del rect_list[:]
 
+
     clock.tick(40 + aiTraining * 1)
+
  
