@@ -923,7 +923,7 @@ class pacman:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 3
+        self.speed = 4
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -973,7 +973,9 @@ class pacman:
 
                     if ghosts[i].state == 1:
                         # ghost is normal
-                        thisGame.SetMode(2)
+                        continue 
+                        # no dying from ghosts
+                        #thisGame.SetMode(2)
 
                     elif ghosts[i].state == 2:
                         # ghost is vulnerable

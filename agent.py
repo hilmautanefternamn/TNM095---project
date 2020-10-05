@@ -16,9 +16,8 @@
 #                           R   L   D   U
 #   normal ghost            x   x   x   x
 #   vulnerable ghost        x   x   x   x
-#   time vulnerable         x   x   x   x
 #   pellet                  x   x   x   x
-#   energizer               x   x   x   x
+#   power pellet            x   x   x   x
 #
 #################################################
 
@@ -40,9 +39,9 @@ NUM_FEATURES = 16
 NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.8     # alpha [0,1]
-EXPLORATION_RATE = 0.5  # [0,1]
-DISCOUNT = 0.7          # gamma [0,1]
+LEARNING_RATE = 0.7     # alpha [0,1]
+EXPLORATION_RATE = 0.0  # [0,1]
+DISCOUNT = 0.6          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -115,9 +114,9 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
                 if pelletPath != False and len(pelletPath) > 0 and len(pelletPath) < minDist:
                     minDist = len(pelletPath)
                     bestPelletPath = pelletPath[0]
-                    # print('shortest path to ', pelletType, ': ', bestPelletPath)
                     idx = translateChar(bestPelletPath)
 
+    print('shortest path to ', pelletType, ': ', bestPelletPath)
     return ACTIONS[idx], minDist 
 
 #####################   FEATURE & REWARD COMPUTATIONS    ####################
@@ -138,7 +137,7 @@ def calculate_features(pos = []):
     ghostDirection, ghostDist = closest_ghost_dir()
     for action in ACTIONS:
         if ghostDist < GHOSTCLOSE and action == ghostDirection:
-            features[idx] = 1
+            features[idx] = 0 # TODO: SET TO 1
         else:
             features[idx] = 0
         idx += 1
@@ -147,7 +146,7 @@ def calculate_features(pos = []):
     vghostDirection, vghostDist = closest_ghost_dir(2)  # state = 2
     for action in ACTIONS:
         if vghostDist < GHOSTCLOSE and action == vghostDirection:
-            features[idx] = 1
+            features[idx] = 0 #TODO: SET TO 1
         else:
             features[idx] = 0
         idx += 1
@@ -263,8 +262,12 @@ def opposite_directions(dir1, dir2):
     return False
 
 # compute reward from the feature vector in the current state
+# R(s,a,s')     s -a-> s' => Q
+# s : previousState
+# a : previousAction
+# s' : currentState
 def get_reward():
-    global currentPelletCount, hitByGhost, ateGhost, towardsPellet, returnCounter, atePowerPellet
+    global currentPelletCount, hitByGhost, ateGhost, atePowerPellet
     
     reward = 0
    
@@ -272,47 +275,51 @@ def get_reward():
     if hitByGhost == 1:
         reward -= 10
         hitByGhost = 0
-        #print('pacman lost a life')
+        print('pacman lost a life')
 
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
-        reward += 2
-        #print('pacman ate a pellet')
+        reward += 3
+        print('pacman ate a pellet')
     currentPelletCount = thisLevel.pellets
 
     # Ate a ghost
-    if ateGhost == 1:
-        reward += 10
-        ateGhost = 0
-        #print('pacman ate a ghost')
+    # if ateGhost == 1:
+    #     reward += 5
+    #     ateGhost = 0
+    #     print('pacman ate a ghost')
     
     # Ate a power pellet
     if atePowerPellet == 1:
        reward += 5
        atePowerPellet = 0
-         
-    # thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
-    # rwd -= 1
 
-    # Time step passed 
-    # reward -= 1
+    # Went towards pellet
+    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+        if features[i] == 1 and ACTIONS[i%8] == previousAction:
+            reward += 1
+            #print('Pacman is going for the pellet!')
     
-    #if rwd != 0:
-     #   print('reward: ', rwd)
+    # print for debug
+    if reward != 0:
+        print('reward: ', reward)
 
     return reward
 
+# compute transition reward to help choose best possible action
 def transition_reward(action):
     global returnCounter
     reward = 0
 
-    # pellet was close & ghosts were not, pacman stayed in the same direction
-    #if pellet_distance() == 1 and ghost_distance() == 0 and previousAction == prepreAction:
-    #    towardsPellet += 1
-        #print('Pacman is going for the pellet!')
-    #    reward += (2*towardsPellet)
-    #else: 
-    #    towardsPellet = 0
+    # no pellet dir found - keep walking in the same direction
+    foundPelletDir = 0
+    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+        if features[i] == 1:
+            foundPelletDir = 1
+
+    if foundPelletDir == 0 and previousAction == action: 
+        reward += 2
+        print('pacman is searching for a pellet')
 
 
     # action will cause Pacman to return to previous position
@@ -323,6 +330,8 @@ def transition_reward(action):
     else: 
         returnCounter = 0
 
+    # thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
+
     return reward
     
 
@@ -332,13 +341,13 @@ def transition_reward(action):
 # load npy-file with q-table to variable Q_table (states x actions)
 def load_qtable_from_file():
     global Q_table
-    loaded_qtable = np.load("q_table_lisa.npy")
+    loaded_qtable = np.load("q_table.npy")
     assert loaded_qtable.shape == Q_table.shape, "Q-table sizes do not agree"
     Q_table = loaded_qtable
 
 # update npy-file with current content of variable Q_table
 def save_qtable_to_file():
-    np.save("q_table_lisa.npy", Q_table, allow_pickle=True)
+    np.save("q_table.npy", Q_table, allow_pickle=True)
     #np.save(r"E:\Skola\AI\TNM095---project\qtable2.npy", Q_table, allow_pickle=False)
 
 def print_qtable():
@@ -347,32 +356,31 @@ def print_qtable():
     print(Q_table)
 
 
-
 #####################   ACTIONS HANDLING    #####################
 #  TRANSLATE STRING TO COORDINATES & GET POSSIBLE/BEST ACTIONS  #
 #################################################################
 # get the actions from all actions that are possible
 # that do not cause pacman to walk into walls
-def get_possible_actions(ACTIONS):
+def get_possible_actions():
     possible_actions = []
     for action in ACTIONS:
-        move = translateAction(action)  # RIGHT -> [x,y]
-        if not thisLevel.CheckIfHitWall((player.x + move[0], player.y + move[1]), (player.nearestRow, player.nearestCol)):
+        dirX, dirY = translateAction(action)  # RIGHT -> [x,y]
+        if not thisLevel.CheckIfHitWall((player.x + dirX, player.y + dirY), (player.nearestRow, player.nearestCol)):
             possible_actions.append( actionToInt(action) )
-
+    
     return possible_actions
 
 # make string actions grid transformation coordinates
 # pacman speed = 3
 def translateAction(action):
     if action == 'RIGHT':
-        return 3, 0
+        return 4, 0
     if action == 'LEFT':
-        return -3, 0
+        return -4, 0
     if action == 'DOWN':
-        return 0, 3
+        return 0, 4
     if action == 'UP':
-        return 0, -3
+        return 0, -4
 
 # convert string action to an int
 def actionToInt(action):
@@ -412,11 +420,13 @@ def get_best_action(possibleActions, currentState):
 
         # print('pre: ', previousAction, ' , action: ', ACTIONS[action])
         # print('trans: ', transVal)
+        print('action: ', ACTIONS[action], ' q-value: ', qvalues[action], ' trans: ', transVal, 'total: ', (qvalues[action] + transVal) )
 
-        if qvalues[action] + transVal > maxVal:
+        if (qvalues[action] + transVal) > maxVal:
             bestAction = action
-            maxVal = qvalues[action]
+            maxVal = qvalues[action] + transVal
 
+    print('best: ',ACTIONS[bestAction])
     #print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
     return ACTIONS[bestAction]  # return action as string
     
@@ -454,7 +464,7 @@ def update_qtable(previousAction, previousState, currentState):
 #       RETURNS RIGHT, LEFT, DOWN or UP TO GAME LOGIC           #
 #################################################################
 def aiMove():
-    global prepreAction, previousAction, previousState
+    global prepreAction, previousAction, previousState, EXPLORATION_RATE
 
    # s -a-> s' => Q
    # s : previousState
@@ -468,7 +478,8 @@ def aiMove():
     update_qtable(previousAction, previousState, currentState)
 
     # get possible actions for current state
-    possibleActions = get_possible_actions(ACTIONS)
+    possibleActions = get_possible_actions()
+    # print("Possible actions: ", possibleActions)
 
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
@@ -477,17 +488,20 @@ def aiMove():
     else:
         action = get_best_action(possibleActions, currentState)    # Q(a', s')
 
-    
     previousState = currentState
     prepreAction = previousAction
     previousAction = action
 
-    
+    # exp. decreasing exploration rate
+    if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%100) == 0:
+        EXPLORATION_RATE -= 0.1
+        print('decreased exploration rate: ' , EXPLORATION_RATE)
+
     # start game automatically - for training
     if thisGame.mode == 3:
         return 'ENTER'
    
-    return #action
+    return action
 
 
 # game "mode" variable
@@ -562,6 +576,7 @@ while True:
 
                 #thisGame.updatehiscores(thisGame.score)
                 thisGame.SetMode(3)
+
                 #thisGame.drawmidgamehiscores()
              #else:
                 #thisGame.SetMode(4)
@@ -714,6 +729,6 @@ while True:
     del rect_list[:]
 
 
-    clock.tick(40 + aiTraining * 1)
+    clock.tick(1.0 + aiTraining * 99999)
 
  
