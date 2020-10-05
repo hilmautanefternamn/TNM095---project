@@ -70,39 +70,38 @@ deaths = 0
 #   1 = normal
 #   2 = vulnerable
 #   (3 = spectacles)
-def ghost_distance(action, state):
-    dirX, dirY = translateAction(action)     # 'RIGHT' -> (3,0)
-    posX = player.x + dirX
-    posY = player.y + dirY
-    minDist = np.inf
+def closest_ghost_dir(state = 1):
 
+    posX = (player.x) / TILE_HEIGHT
+    posY = (player.y) / TILE_WIDTH
+    minDist = np.inf
+    closestGhostPath = ""
+    idx = 0
+    
     for i in range(0, 4, 1):
         if ghosts[i].state == state:
-            distance = abs(posX - ghosts[i].x) + abs(posY - ghosts[i].y)
-            if distance < minDist:
-                minDist = distance
-    return minDist
+            row = ghosts[i].nearestRow 
+            col = ghosts[i].nearestCol 
 
-# get action giving the smallest distance to closest ghost
-def closest_ghost_dir(state = 1):
-    distance = []
-    # find minDist to closest ghost for each action
-    for action in ACTIONS:
-        distance.append(ghost_distance(action, state))
+            distance = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
+            if distance != False and len(distance) > 0 and len(distance) < minDist:
+                minDist = len(distance)
+                closestGhostPath = distance[0]
+                #print('shortest path to Ghost of state ' , state ,': ' , closestGhostPath)
+                idx = translateChar(closestGhostPath)
+                
+    return ACTIONS[idx], minDist
 
-    # return action giving smallest minDist = worst choice of direction
-    idx = distance.index(min(distance))
-    return ACTIONS[idx], min(distance)
+# compute closest distance between pellet and pacmam
+def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
 
-
-# compute closest distance to a pellet in given direction
-def pellet_distance(action, radius = 1, pelletType = 'pellet'):
-    dirX, dirY = translateAction(action)     # 'RIGHT' -> (3,0)
-    posX = (player.x + dirX) / TILE_HEIGHT
-    posY = (player.y + dirY) / TILE_WIDTH
+    posX = (player.x) / TILE_HEIGHT
+    posY = (player.y) / TILE_WIDTH
     minDist = np.inf
+    bestPelletPath = ""
+    idx = 0
 
-    # Loop grid around tile 
+    # Loop grid around pacman 
     for r in range(-radius, radius + 2):        # we add with 2 cuz he did it in the game
         for c in range(-radius, radius + 2):
             # scale coordinates to tiles
@@ -111,28 +110,15 @@ def pellet_distance(action, radius = 1, pelletType = 'pellet'):
 
             # if tile contains pellet, compute distance 
             if (thisLevel.GetMapTile((row, col)) == tileID[pelletType]):
-                # len(path.FindPath((player.nearestRow, player.nearestCol), (row,col))) 
                 pelletPath = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
-                #print(pelletPath)
-                #distance = abs(posX - col) + abs(posY - row)
-                #if distance < minDist:
-                #    minDist = distance
+
                 if pelletPath != False and len(pelletPath) > 0 and len(pelletPath) < minDist:
                     minDist = len(pelletPath)
-                    #print('shortest path to ', pelletType, ': ', pelletPath)
-    
-    return minDist
+                    bestPelletPath = pelletPath[0]
+                    # print('shortest path to ', pelletType, ': ', bestPelletPath)
+                    idx = translateChar(bestPelletPath)
 
-# get action giving the smallest distance to the closest pellet
-# pelletType: 'pellet', 'pellet-power'
-def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
-    distance = []
-    for action in ACTIONS:
-        distance.append(pellet_distance(action, radius, pelletType))
-    
-    idx = distance.index(min(distance))
-    return ACTIONS[idx], min(distance)
-
+    return ACTIONS[idx], minDist 
 
 #####################   FEATURE & REWARD COMPUTATIONS    ####################
 #       BINARY RESULTS FOR EACH FEATURE & POS/NEG REWARDS FOR ACTIONS       #
@@ -146,7 +132,7 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
 # features[?]: will be 1 if time of closest vulnerable ghost is short
 def calculate_features(pos = []):
     idx = 0   
-    GHOSTCLOSE = 35 # ~ 5 tiles away TODO: set to 120
+    GHOSTCLOSE = 120 # ~ 5 tiles away
 
     # normal ghost distance for every action
     ghostDirection, ghostDist = closest_ghost_dir()
@@ -159,7 +145,6 @@ def calculate_features(pos = []):
 
     # vulnerable ghost distance for every action
     vghostDirection, vghostDist = closest_ghost_dir(2)  # state = 2
-    # TODO: what happens when blue ghost doesnt exist or disappear?
     for action in ACTIONS:
         if vghostDist < GHOSTCLOSE and action == vghostDirection:
             features[idx] = 1
@@ -411,6 +396,17 @@ def actionToInt(action):
     if action == 'UP':
         return 3
 
+# convert char actions to ints
+def translateChar(char):
+    if char == 'R':
+        return 0
+    if char == 'L':
+        return 1
+    if char == 'D':
+        return 2
+    if char == 'U':
+        return 3
+
 # get the action among the possible actions 
 # that maximizes the reward function
 # possibleActions = list of action indices
@@ -506,7 +502,7 @@ def aiMove():
     if thisGame.mode == 3:
         return 'ENTER'
    
-    return action
+    return #action
 
 
 # game "mode" variable
@@ -735,5 +731,5 @@ while True:
     pygame.display.update()
     del rect_list[:]
 
-    clock.tick(40 + aiTraining * 9999999)
+    clock.tick(40 + aiTraining * 1)
  
