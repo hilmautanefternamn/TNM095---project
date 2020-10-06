@@ -923,7 +923,7 @@ class pacman:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 4
+        self.speed = 3
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -1450,7 +1450,7 @@ class level:
 
     def Restart(self):
         if thisGame.levelNum == 2:
-            player.speed = 4
+            player.speed = 3
 
         for i in range(0, 4, 1):
             # move ghosts back to home
