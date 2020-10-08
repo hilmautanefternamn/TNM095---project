@@ -22,6 +22,7 @@
 import os
 import random
 import sys
+import math
 
 import pygame
 from pygame.locals import *
@@ -1152,89 +1153,126 @@ class level:
     def CheckIfHitSomething(playerX_playerY, row_col):
         (playerX, playerY) = playerX_playerY
         (row, col) = row_col
-        for iRow in range(row - 1, row + 2, 1):
-            for iCol in range(col - 1, col + 2, 1):
 
-                if (playerX - (iCol * TILE_WIDTH) < TILE_WIDTH) and (
-                        playerX - (iCol * TILE_WIDTH) > -TILE_WIDTH) and (
-                        playerY - (iRow * TILE_HEIGHT) < TILE_HEIGHT) and (
-                        playerY - (iRow * TILE_HEIGHT) > -TILE_HEIGHT):
+        # Scale Pacmans position so that he hits objects at same pos in every direction
+        posY = (player.y) / TILE_WIDTH  # Pacman absolute position
+        posX = (player.x) / TILE_HEIGHT
+        diffX = posX - int(round(posX)) # difference from absolute and normalized
+        diffY = posY - int(round(posY))
+        iRow = int(round(posY))         # Pacman tile
+        iCol = int(round(posX))
+
+        # previousAction = 'RIGHT' , 15 -> 15.x -> 16  find paths from: 15
+        if player.velX > 0 and diffX != 0:
+            # floor col      
+           iCol = int(math.floor(posX)) 
+
+        # previousAction = 'UP' , 16 -> 15.x -> 15    find paths from: 16
+        if player.velX < 0 and diffX != 0:
+            # ceil col
+            iCol = int(math.ceil(posX))
+
+        # previousAction = 'DOWN' , 15 -> 15.x -> 16  find paths from: 15
+        if player.velY > 0 and diffY != 0:
+            # floor row
+            iRow = int(math.floor(posY))
+
+        # previousAction = 'UP' , 16 -> 15.x -> 15    find paths from: 16
+        if player.velY < 0 and diffY != 0:
+            # ceil row
+            iRow = int(math.ceil(posY))
+
+       # print('CheckIfHitSomething row col: ', iRow, iCol)
+
+        #for iRow in range(row - 1, row + 2, 1):
+        #    for iCol in range(col - 1, col + 2, 1):
+
+         #       if (playerX - (iCol * TILE_WIDTH) < TILE_WIDTH) and (
+          #              playerX - (iCol * TILE_WIDTH) > -TILE_WIDTH) and (
+           #             playerY - (iRow * TILE_HEIGHT) < TILE_HEIGHT) and (
+            #            playerY - (iRow * TILE_HEIGHT) > -TILE_HEIGHT):
                     # check the offending tile ID
-                    result = thisLevel.GetMapTile((iRow, iCol))
+                    #result = thisLevel.GetMapTile((iRow, iCol))
+        result = thisLevel.GetMapTile((iRow, iCol))
 
-                    if result == tileID['pellet']:
-                        # got a pellet
-                        thisLevel.SetMapTile((iRow, iCol), 0)
-                        #snd_pellet[player.pelletSndNum].play()
-                        player.pelletSndNum = 1 - player.pelletSndNum
+        if result == tileID['pellet']:
+            print('CheckIfHitSomething tileID == pellet')
+            # got a pellet
+            thisLevel.SetMapTile((iRow, iCol), 0)
+            #snd_pellet[player.pelletSndNum].play()
 
-                        thisLevel.pellets -= 1
+            player.pelletSndNum = 1 - player.pelletSndNum
+            thisLevel.pellets -= 1
+            thisGame.AddToScore(10)
+            
 
-                        thisGame.AddToScore(10)
-
-                        if thisLevel.pellets == 0:
-                            # no more pellets left!
-                            # WON THE LEVEL
-                            thisGame.SetMode(6)
+            if thisLevel.pellets == 0:
+                # no more pellets left!
+                # WON THE LEVEL
+                thisGame.SetMode(6)
 
 
-                    elif result == tileID['pellet-power']:
-                        # got a power pellet
-                        thisGame.SetMode(9)
-                        thisLevel.SetMapTile((iRow, iCol), 0)
-                        snd_powerpellet.play()
+        elif result == tileID['pellet-power']:
+            print('CheckIfHitSomething tileID == pellet-power')
+            # got a power pellet
+            thisGame.SetMode(9)
+            thisLevel.SetMapTile((iRow, iCol), 0)
+            snd_powerpellet.play()
 
-                        thisGame.AddToScore(100)
-                        thisGame.ghostValue = 200
+            thisGame.AddToScore(100)
+            thisGame.ghostValue = 200
 
-                        thisGame.ghostTimer = 360
-                        for i in range(0, 4, 1):
-                            if ghosts[i].state == 1:
-                                ghosts[i].state = 2
+            thisGame.ghostTimer = 360
+            for i in range(0, 4, 1):
+                if ghosts[i].state == 1:
+                    ghosts[i].state = 2
 
-                                """
-                                # Must line up with grid before invoking a new path (for now)
-                                ghosts[i].x = ghosts[i].nearestCol * TILE_HEIGHT
-                                ghosts[i].y = ghosts[i].nearestRow * TILE_WIDTH								
+                    """
+                    # Must line up with grid before invoking a new path (for now)
+                    ghosts[i].x = ghosts[i].nearestCol * TILE_HEIGHT
+                    ghosts[i].y = ghosts[i].nearestRow * TILE_WIDTH								
                                 
-                                # give each ghost a path to a random spot (containing a pellet)
-                                (randRow, randCol) = (0, 0)
+                    # give each ghost a path to a random spot (containing a pellet)
+                    (randRow, randCol) = (0, 0)
 
-                                while not self.GetMapTile((randRow, randCol)) == tileID[ 'pellet' ] or (randRow, randCol) == (0, 0):
-                                    randRow = random.randint(1, self.lvlHeight - 2)
-                                    randCol = random.randint(1, self.lvlWidth - 2)
-                                ghosts[i].currentPath = path.FindPath( (ghosts[i].nearestRow, ghosts[i].nearestCol), (randRow, randCol) )
+                    while not self.GetMapTile((randRow, randCol)) == tileID[ 'pellet' ] or (randRow, randCol) == (0, 0):
+                        randRow = random.randint(1, self.lvlHeight - 2)
+                        randCol = random.randint(1, self.lvlWidth - 2)
+                    ghosts[i].currentPath = path.FindPath( (ghosts[i].nearestRow, ghosts[i].nearestCol), (randRow, randCol) )
                                 
-                                ghosts[i].FollowNextPathWay()
-                                """
+                    ghosts[i].FollowNextPathWay()
+                    """
 
-                    elif result == tileID['door-h']:
-                        # ran into a horizontal door
-                        for i in range(0, thisLevel.lvlWidth, 1):
-                            if not i == iCol:
-                                if thisLevel.GetMapTile((iRow, i)) == tileID['door-h']:
-                                    player.x = i * TILE_WIDTH
+        elif result == tileID['door-h']:
+            print('CheckIfHitSomething tileID == door-h')
+            # ran into a horizontal door
+            for i in range(0, thisLevel.lvlWidth, 1):
+                if not i == iCol:
+                    if thisLevel.GetMapTile((iRow, i)) == tileID['door-h']:
+                        player.x = i * TILE_WIDTH
 
-                                    if player.velX > 0:
-                                        player.x += TILE_WIDTH
-                                    else:
-                                        player.x -= TILE_WIDTH
+                        if player.velX > 0:
+                            player.x += TILE_WIDTH
+                        else:
+                            player.x -= TILE_WIDTH
 
-                    elif result == tileID['door-v']:
-                        # ran into a vertical door
-                        for i in range(0, thisLevel.lvlHeight, 1):
-                            if not i == iRow:
-                                if thisLevel.GetMapTile((i, iCol)) == tileID['door-v']:
-                                    player.y = i * TILE_HEIGHT
+        elif result == tileID['door-v']:
+            print('CheckIfHitSomething tileID == door-v')
+            # ran into a vertical door
+            for i in range(0, thisLevel.lvlHeight, 1):
+                if not i == iRow:
+                    if thisLevel.GetMapTile((i, iCol)) == tileID['door-v']:
+                        player.y = i * TILE_HEIGHT
 
-                                    if player.velY > 0:
-                                        player.y += TILE_HEIGHT
-                                    else:
-                                        player.y -= TILE_HEIGHT
+                        if player.velY > 0:
+                            player.y += TILE_HEIGHT
+                        else:
+                            player.y -= TILE_HEIGHT
 
-                    elif result == tileID['heart']:
-                        thisGame.SetMode(11)
-                    return result
+        elif result == tileID['heart']:
+            print('CheckIfHitSomething tileID == heart')
+            thisGame.SetMode(11)
+        return result
 
     def GetGhostBoxPos(self):
         for row in range(0, self.lvlHeight, 1):

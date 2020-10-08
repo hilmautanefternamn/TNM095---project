@@ -33,6 +33,7 @@
 from pacman import *
 import random
 import numpy as np 
+import math
 
 # global constants
 NUM_FEATURES = 16    
@@ -91,92 +92,102 @@ def closest_ghost_dir(state = 1):
                 
     return ACTIONS[idx], minDist
 
-# compute closest distance between pellet and pacmam
-def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
+# Loop over Pacmans closest grid to find paths to pellets
+def find_pellet_paths(playerRow, playerCol, radius, pelletType):
+    possibleActions = get_possible_actions()    # 0, 1, 2, 3    R L D U
+    paths = {}
 
     posY = (player.y) / TILE_WIDTH  # Pacman absolute position
     posX = (player.x) / TILE_HEIGHT
-    playerRow = player.nearestRow   # What tile pacman is in
-    playerCol = player.nearestCol
-    minDist = np.inf
-    bestPelletPath = ""
-    idx = 0
-    
-    # We will probably need to fix when Pacman eats the pellets (so that he does it when he is in the middle of a tile EVERY time)
-    # otherwise, we will have to handle it all here with if statements and exceptions. 
-    # When we loop over the grid, Pacman's nearest row and nearest col (which is the center we loop around) will still be 16, 9
-    # when pacman has moved to 16, 8.875
-    # Since he eats the pellet immidiately when walking L, this means that the grid is still "in the same place" and will return
-    # pellet 16, 10 as closest pellet. Even tho pellet 16, 7 is actually closer
-    # This is aids and cancer
 
-
-
-    
-    # print('player.x: ', player.x)
-    # print('player.y: ', player.y)
-    print('posY, posX: ', posY, ' ', posX)
-    print('playerRow, playerCol: ', playerRow, ' ', playerCol)
-
-    if (pelletType == 'pellet'): # TODO: remove this if. It is for debug
-        # Loop grid around pacman 
-        for tileRow in range(playerRow - radius, playerRow + radius + 1):        
-            for tileCol in range(playerCol - radius, playerCol + radius + 1):
-
-
-                # This is the row and col for the tile we want to check
-                # tileRow = int( posY + r*(TILE_WIDTH / 2) / TILE_WIDTH )
-                # tileCol = int( posX + c*(TILE_HEIGHT / 2) / TILE_HEIGHT)
+    # loop over grid around Pacman
+    for tileRow in range(playerRow - radius, playerRow + radius + 1):           # y 
+        for tileCol in range(playerCol - radius, playerCol + radius + 1):       # x
                 
-                print('tileRow, tileCol: ', tileRow, ' ', tileCol)
+            # if tile contains pellet, get path and compute distance 
+            if (thisLevel.GetMapTile((tileRow, tileCol)) == tileID[pelletType]):
 
-                # if tile contains pellet, compute distance 
-                if (thisLevel.GetMapTile((tileRow, tileCol)) == tileID[pelletType]):
-                    
-                    print('This tile has a pellet!')
-                    pelletPath = path.FindPath((playerRow, playerCol), (tileRow,tileCol)) 
-                    print('pelletPath: ', pelletPath)
-                    
-                    if(not pelletPath):
-                        print("Pacman is in the pellet tile, but has not yet eaten the pellet")
-                        # This will happen when pacman is walking R into a tile, and has absolute position ie 9.625
-                        # Here we need to give the correct path towards the middle of the tile
-                        # and break the loop
-                        # This will also fix the feature vector 
-                        # Since Pacman eats pellet immidiately when entering tile by walking L, this will not happen when he is walkin L into a tile
-                        # and probable not be a problem either
-                        # I have not checked up or down
-                        
-                        
+                pelletPath = path.FindPath((playerRow, playerCol), (tileRow,tileCol)) 
+                #print('pelletPath: ', pelletPath)
+                              
+                # store all possible paths with their distance to Pacman
+                if pelletPath != False and len(pelletPath) > 0 and translateChar(pelletPath[0]) in possibleActions:
+                            
+                    # compute actual distance to pellet & store path in dictionary
+                    distance = abs(posY - tileRow) + abs(posX - tileCol)                            
+                    #print("pRow: ", playerRow, "pCol: ", playerCol, "Dist: ", distance)
 
-                    # if (pelletPath == "False" or pelletPath == False):
-                    #     print("This tile has a pellet but no pellet path!")
-                    #     # This will only happen for the first 2 states (as far as I have seen)
-                    #     # so it is not a problem 
+                    # Check if distance is already in the dictionary and if it exists check which distance is lower
+                    if pelletPath not in paths:
+                        paths.update( {pelletPath: distance} )
+                    else:
+                        if paths[pelletPath] > distance:
+                            paths.update( {pelletPath: distance} )
+    return paths
 
+# compute closest distance between pellet and pacmam
+def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
 
-                    # If Pacman is not inside the tile with the pellet but there is a 
-                    # surrounding tile with a pellet, this if will become true. 
-                    # If Pacmans absolute position is ie (16, 9.625), his tilePosition will be (16, 10)
-                    # If pellet is in (15, 10), the pelletPath will become D
-                    # But, Pacman still needs to walk 3 more steps R before he can walk D
-                    # Therefore, we need to save the corresponding pelletTile (tileRow, tileCol)
-                    # in a local bestPellet variable.
-                    # When the loop is done, we check if Pacman needs to take extra steps before he can turn in the correct direction
-                    if pelletPath != False and len(pelletPath) > 0 and len(pelletPath) < minDist:
-                        minDist = len(pelletPath)
-                        bestPellet = (tileRow, tileCol)
-                        
-                        # these will be calculated outside the for-loop, using the information in bestPellet
-                        bestPelletPath = pelletPath[0]  
-                        idx = translateChar(bestPelletPath)
-                
+    posY = (player.y) / TILE_WIDTH  # Pacman absolute tile position
+    posX = (player.x) / TILE_HEIGHT
 
-        # Calculate bestPelletPath here
+    playerRow = int(round(posY)) # Pacman rounded tile - dummys for start
+    playerCol = int(round(posX))
 
-        print('shortest path to ', pelletType, ': ', bestPelletPath)
+    diffX = posX - playerCol   # +: RIGHT, -: LEFT  
+    diffY = posY - playerRow   # +: DOWN, -: UP 
 
-    return ACTIONS[idx], minDist 
+    paths = {}
+    idx = 5
+    
+    #print('posY, posX: ', posY, ' ', posX)
+        
+    # Pacman is in centre of a tile, find possible paths to pellet from tile
+    if diffY == 0 and diffX == 0:
+        paths = find_pellet_paths(playerRow, playerCol, radius, pelletType)
+
+    # Pacman is in between 2 tiles, check for possible paths for both the tiles
+    else:
+        #Optimize?
+        for i in range(0,2):                      
+            if(diffY != 0 and i != 1):
+                playerRow = math.ceil(posY)         
+            elif(diffY != 0):
+                playerRow = math.floor(posY)        
+
+            if(diffX != 0 and i != 1):              
+                playerCol = math.ceil(posX)
+            elif(diffX != 0):
+                playerCol = math.floor(posX)
+
+            paths.update( find_pellet_paths(playerRow, playerCol, radius, pelletType) )
+        
+    # Pellet paths found
+    if len(paths) > 0:
+        #print('paths: ', paths)
+
+        # get first char of paths with minimum distance to pellet
+        minval = min(paths.values())
+        bestActions = [k[0] for k, v in paths.items() if v==minval]
+        # print('bestActions: ', bestActions)
+
+        # one shortest path
+        if len(bestActions) == 0:
+            idx = translateChar(bestActions[0])
+
+        # several paths with same distance
+        # pick random
+        else:
+            idx = translateChar( random.choice(bestActions) )
+    
+    # no close pellet found
+    else:
+        #print('no close ', pelletType,  ' found!')
+        return ''
+
+    #print('shortest path: ', ACTIONS[idx])
+    return ACTIONS[idx]
+
 
 #####################   FEATURE & REWARD COMPUTATIONS    ####################
 #       BINARY RESULTS FOR EACH FEATURE & POS/NEG REWARDS FOR ACTIONS       #
@@ -211,18 +222,18 @@ def calculate_features(pos = []):
         idx += 1
 
     # food pellet distance for every action
-    pelletDirection, pelletDist = closest_pellet_dir()
+    pelletDirection = closest_pellet_dir()
     for action in ACTIONS:
-        if pelletDist < 9999 and action == pelletDirection:
+        if pelletDirection != '' and action == pelletDirection:
             features[idx] = 1
         else:
             features[idx] = 0
         idx += 1
 
     # power pellet distance for every action
-    ppelletDirection, ppelletDist = closest_pellet_dir(1, 'pellet-power')
+    ppelletDirection = closest_pellet_dir(1, 'pellet-power')
     for action in ACTIONS:
-        if ppelletDist < 9999 and action == ppelletDirection:
+        if ppelletDirection != '' and action == ppelletDirection:
             features[idx] = 0 # TODO: SET TO 1
         else:
             features[idx] = 0
@@ -330,36 +341,36 @@ def get_reward():
     
     reward = 0
    
-    # # Lost a life
-    # if hitByGhost == 1:
-    #     reward -= 10
-    #     hitByGhost = 0
-    #     print('pacman lost a life')
+    # Lost a life
+    if hitByGhost == 1:
+        reward -= 10
+        hitByGhost = 0
+        #print('pacman lost a life')
 
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
         reward += 3
         print('pacman ate a pellet')
-        print('HE ATE PELLET HE ATE PELLET HE ATE PELLET HE ATE PELLET')
     currentPelletCount = thisLevel.pellets
 
     # Ate a ghost
-    # if ateGhost == 1:
-    #     reward += 5
-    #     ateGhost = 0
-    #     print('pacman ate a ghost')
+    if ateGhost == 1:
+        reward += 5
+        ateGhost = 0
+        #print('pacman ate a ghost')
     
-    # # Ate a power pellet
-    # if atePowerPellet == 1:
-    #    reward += 5
-    #    atePowerPellet = 0
+    # Ate a power pellet
+    if atePowerPellet == 1:
+        reward += 5
+        atePowerPellet = 0
 
     # Went towards pellet
-    # for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-    #     if features[i] == 1 and ACTIONS[i%8] == previousAction:
-    #         reward += 1
-    #         print('Pacman is going for the pellet!')
+    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+        if features[i] == 1 and ACTIONS[i%8] == previousAction:
+            reward += 1
+        # print('Pacman is going for the pellet!')
     
+
     # print for debug
     # if reward != 0:
     #     print('reward: ', reward)
@@ -371,26 +382,28 @@ def transition_reward(action):
     global returnCounter
     reward = 0
 
-    # # no pellet dir found - keep walking in the same direction
-    # foundPelletDir = 0
-    # for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-    #     if features[i] == 1:
-    #         foundPelletDir = 1
+    # no pellet dir found - keep walking in the same direction
+    foundPelletDir = 0
+    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+         if features[i] == 1:
+             foundPelletDir = 1
 
-    # if foundPelletDir == 0 and previousAction == action: 
-    #     reward += 2
-    #     print('pacman is searching for a pellet')
+    if foundPelletDir == 0 and previousAction == action: 
+         reward += 2
+         #print('pacman is searching for a pellet')
 
 
-    # # action will cause Pacman to return to previous position
-    # if opposite_directions(previousAction, action):
-    #     returnCounter += 1
-    #     #print('Pacman does the ping pong!')
-    #     reward -= 2 * returnCounter
-    # else: 
-    #     returnCounter = 0
+    # action will cause Pacman to return to previous position
+    # previousAction = action that lead to this state
+    # action = possibleAction
+    if opposite_directions(previousAction, action):
+         returnCounter += 1
+         # print('Pacman evalalutes the ping pong!')
+         reward -= 2 * returnCounter
+    else: 
+         returnCounter = 0
 
-    # thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
+    #thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
 
     return reward
     
@@ -434,13 +447,13 @@ def get_possible_actions():
 # pacman speed = 3
 def translateAction(action):
     if action == 'RIGHT':
-        return 4, 0
+        return 3, 0
     if action == 'LEFT':
-        return -4, 0
+        return -3, 0
     if action == 'DOWN':
-        return 0, 4
+        return 0, 3
     if action == 'UP':
-        return 0, -4
+        return 0, -3
 
 # convert string action to an int
 def actionToInt(action):
@@ -477,24 +490,21 @@ def get_best_action(possibleActions, currentState):
     # get possible action with highest Q-value + transition reward
     for action in possibleActions:
         transVal =  transition_reward(ACTIONS[action])
-
-        # print('pre: ', previousAction, ' , action: ', ACTIONS[action])
         # print('trans: ', transVal)
-        print('Possible action: ', action, ACTIONS[action], ' q-value: ', qvalues[action])#, ' trans: ', transVal, 'total: ', (qvalues[action] + transVal) )
 
         if (qvalues[action] + transVal) > maxVal:
             bestAction = action
             maxVal = qvalues[action] + transVal
     
-    print('Feature[8] = ' , features[8])
-    print('Feature[9] = ' , features[9])
-    print('Feature[10] = ' , features[10])
-    print('Feature[11] = ' , features[11])
+    #print('Feature[8] = ' , features[8])
+    #print('Feature[9] = ' , features[9])
+    #print('Feature[10] = ' , features[10])
+    #print('Feature[11] = ' , features[11])
 
-    print('Best action: ', ACTIONS[bestAction], '\n')
+    #print('Best action: ', ACTIONS[bestAction], '\n')
 
     #print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
-    return #ACTIONS[bestAction]  # return action as string
+    return ACTIONS[bestAction]  # return action as string
     
 
 # update Q_table
@@ -525,12 +535,16 @@ def update_qtable(previousAction, previousState, currentState):
     save_qtable_to_file()
 
 
-
 #####################   MOVE AGENT IN GUI    ####################
 #       RETURNS RIGHT, LEFT, DOWN or UP TO GAME LOGIC           #
 #################################################################
 def aiMove():
     global prepreAction, previousAction, previousState, EXPLORATION_RATE
+
+  #  print('RIGHT ' , features[8])
+  #  print('LEFT = ' , features[9])
+  #  print('DOWN = ' , features[10])
+  #  print('UP = ' , features[11])
 
    # s -a-> s' => Q
    # s : previousState
@@ -545,7 +559,7 @@ def aiMove():
 
     # get possible actions for current state
     possibleActions = get_possible_actions()
-    # print("Possible actions: ", possibleActions)
+    ´#print("Possible actions: ", possibleActions)
 
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
@@ -795,6 +809,6 @@ while True:
     del rect_list[:]
 
 
-    clock.tick(1.0 + aiTraining * 0)
+    clock.tick(40.0 + aiTraining * 9999)
 
  
