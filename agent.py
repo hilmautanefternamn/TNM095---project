@@ -83,13 +83,22 @@ def closest_ghost_dir(state = 1):
             row = ghosts[i].nearestRow 
             col = ghosts[i].nearestCol 
 
-            distance = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
-            if distance != False and len(distance) > 0 and len(distance) < minDist:
-                minDist = len(distance)
-                closestGhostPath = distance[0]
-                #print('shortest path to Ghost of state ' , state ,': ' , closestGhostPath)
-                idx = translateChar(closestGhostPath)
-                
+            # only get ghost path when ghost is close enough
+            manhattanDist = abs(player.nearestRow - row) + abs(player.nearestCol - col)
+            # print('manhattan: ', manhattanDist)
+            if (manhattanDist) < 8:
+                distance = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
+                if distance != False and len(distance) > 0 and len(distance) < minDist:
+                    minDist = len(distance)
+                    closestGhostPath = distance[0]
+                    #print('shortest path to Ghost of state ' , state ,': ' , closestGhostPath)
+                    idx = translateChar(closestGhostPath)
+            else: 
+                continue
+    
+    # no close ghost found
+    if closestGhostPath == "":
+        return '', minDist
     return ACTIONS[idx], minDist
 
 # Loop over Pacmans closest grid to find paths to pellets
@@ -207,7 +216,7 @@ def calculate_features(pos = []):
     ghostDirection, ghostDist = closest_ghost_dir()
     for action in ACTIONS:
         if ghostDist < GHOSTCLOSE and action == ghostDirection:
-            features[idx] = 0 # TODO: SET TO 1
+            features[idx] = 1 # TODO: SET TO 1
         else:
             features[idx] = 0
         idx += 1
@@ -216,7 +225,7 @@ def calculate_features(pos = []):
     vghostDirection, vghostDist = closest_ghost_dir(2)  # state = 2
     for action in ACTIONS:
         if vghostDist < GHOSTCLOSE and action == vghostDirection:
-            features[idx] = 0 #TODO: SET TO 1
+            features[idx] = 1 #TODO: SET TO 1
         else:
             features[idx] = 0
         idx += 1
@@ -234,7 +243,7 @@ def calculate_features(pos = []):
     ppelletDirection = closest_pellet_dir(1, 'pellet-power')
     for action in ACTIONS:
         if ppelletDirection != '' and action == ppelletDirection:
-            features[idx] = 0 # TODO: SET TO 1
+            features[idx] = 1 # TODO: SET TO 1
         else:
             features[idx] = 0
         idx += 1
