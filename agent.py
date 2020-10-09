@@ -40,9 +40,9 @@ NUM_FEATURES = 16
 NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.7     # alpha [0,1]
-EXPLORATION_RATE = 0.0  # [0,1]
-DISCOUNT = 0.6          # gamma [0,1]
+LEARNING_RATE = 0.5     # alpha [0,1]
+EXPLORATION_RATE = 0.5  # [0,1]
+DISCOUNT = 0.8          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -383,13 +383,13 @@ def transition_reward(action):
     reward = 0
 
     # no pellet dir found - keep walking in the same direction
-    foundPelletDir = 0
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-         if features[i] == 1:
-             foundPelletDir = 1
+   # foundPelletDir = 0
+    #for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+     #    if features[i] == 1:
+      #       foundPelletDir = 1
 
-    if foundPelletDir == 0 and previousAction == action: 
-         reward += 2
+    #if foundPelletDir == 0 and previousAction == action: 
+     #    reward += 2
          #print('pacman is searching for a pellet')
 
 
@@ -559,7 +559,7 @@ def aiMove():
 
     # get possible actions for current state
     possibleActions = get_possible_actions()
-    ´#print("Possible actions: ", possibleActions)
+    #print("Possible actions: ", possibleActions)
 
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
@@ -612,7 +612,7 @@ if previousState < 0:
 #####################   MAIN GAME LOOP    ###################
 #                                                           #
 #############################################################
-while True:
+while deaths < 1000:
 
     CheckIfCloseButton(pygame.event.get())
     if thisGame.mode == 0:

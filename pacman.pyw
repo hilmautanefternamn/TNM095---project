@@ -48,6 +48,8 @@ HS_XOFFSET = 180
 HS_YOFFSET = 400
 HS_ALPHA = 200
 
+AISPEED = 2
+
 # new constants for the score's position
 SCORE_XOFFSET = 50  # pixels from left edge
 SCORE_YOFFSET = 34  # pixels from bottom edge (to top of score)
@@ -610,7 +612,7 @@ class ghost:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 2
+        self.speed = 2 * AISPEED
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -762,7 +764,7 @@ class ghost:
                 ghosts[self.id].velX = 0
                 ghosts[self.id].velY = 0
                 #ghosts[self.id].state = 1
-                ghosts[self.id].speed = 2
+                ghosts[self.id].speed = 2 * AISPEED
                 ghosts[self.id].Move()
 
             # chase pac-man
@@ -817,7 +819,7 @@ class fruit:
         self.y = -TILE_HEIGHT
         self.velX = 0
         self.velY = 0
-        self.speed = 2
+        self.speed = 2 * AISPEED
         self.active = False
 
         self.bouncei = 0
@@ -924,7 +926,7 @@ class pacman:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 3
+        self.speed = 3 * AISPEED
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -974,9 +976,9 @@ class pacman:
 
                     if ghosts[i].state == 1:
                         # ghost is normal
-                        continue 
+                        #continue 
                         # no dying from ghosts
-                        #thisGame.SetMode(2)
+                        thisGame.SetMode(2)
 
                     elif ghosts[i].state == 2:
                         # ghost is vulnerable
@@ -1488,7 +1490,7 @@ class level:
 
     def Restart(self):
         if thisGame.levelNum == 2:
-            player.speed = 3
+            player.speed = 3 * AISPEED
 
         for i in range(0, 4, 1):
             # move ghosts back to home
@@ -1497,7 +1499,7 @@ class level:
             ghosts[i].velX = 0
             ghosts[i].velY = 0
             ghosts[i].state = 1
-            ghosts[i].speed = 2
+            ghosts[i].speed = 2 * AISPEED
             ghosts[i].Move()
 
             # give each ghost a path to a random spot (containing a pellet)
