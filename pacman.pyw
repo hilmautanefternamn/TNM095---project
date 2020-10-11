@@ -974,9 +974,9 @@ class pacman:
 
                     if ghosts[i].state == 1:
                         # ghost is normal
-                        continue 
+                        # continue 
                         # no dying from ghosts
-                        #thisGame.SetMode(2)
+                        thisGame.SetMode(2)
 
                     elif ghosts[i].state == 2:
                         # ghost is vulnerable

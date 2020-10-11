@@ -82,14 +82,23 @@ def closest_ghost_dir(state = 1):
 
             row = ghosts[i].nearestRow 
             col = ghosts[i].nearestCol 
-
-            distance = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
-            if distance != False and len(distance) > 0 and len(distance) < minDist:
-                minDist = len(distance)
-                closestGhostPath = distance[0]
-                #print('shortest path to Ghost of state ' , state ,': ' , closestGhostPath)
-                idx = translateChar(closestGhostPath)
-                
+            
+            # only get ghost path when ghost is close enough
+            manhattanDist = abs(player.nearestRow - row) + abs(player.nearestCol - col)
+            # print('manhattan: ', manhattanDist)
+            if (manhattanDist) < 8:
+                distance = path.FindPath((player.nearestRow, player.nearestCol), (row,col)) 
+                if distance != False and len(distance) > 0 and len(distance) < minDist:
+                    minDist = len(distance)
+                    closestGhostPath = distance[0]
+                    #print('shortest path to Ghost of state ' , state ,': ' , closestGhostPath)
+                    idx = translateChar(closestGhostPath)
+            else: 
+                continue
+    
+    # no close ghost found
+    if closestGhostPath == "":
+        return '', minDist
     return ACTIONS[idx], minDist
 
 # Loop over Pacmans closest grid to find paths to pellets
@@ -164,7 +173,7 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
         
     # Pellet paths found
     if len(paths) > 0:
-        #print('paths: ', paths)
+        # print('paths: ', paths)
 
         # get first char of paths with minimum distance to pellet
         minval = min(paths.values())
@@ -207,7 +216,7 @@ def calculate_features(pos = []):
     ghostDirection, ghostDist = closest_ghost_dir()
     for action in ACTIONS:
         if ghostDist < GHOSTCLOSE and action == ghostDirection:
-            features[idx] = 0 # TODO: SET TO 1
+            features[idx] = 1 
         else:
             features[idx] = 0
         idx += 1
@@ -216,7 +225,7 @@ def calculate_features(pos = []):
     vghostDirection, vghostDist = closest_ghost_dir(2)  # state = 2
     for action in ACTIONS:
         if vghostDist < GHOSTCLOSE and action == vghostDirection:
-            features[idx] = 0 #TODO: SET TO 1
+            features[idx] = 1 
         else:
             features[idx] = 0
         idx += 1
@@ -234,7 +243,7 @@ def calculate_features(pos = []):
     ppelletDirection = closest_pellet_dir(1, 'pellet-power')
     for action in ACTIONS:
         if ppelletDirection != '' and action == ppelletDirection:
-            features[idx] = 0 # TODO: SET TO 1
+            features[idx] = 1
         else:
             features[idx] = 0
         idx += 1
@@ -283,42 +292,6 @@ def feature_to_state():
     if(features[15] == 1):
         state += 500
 
-
-
-
-    # if(features[0] == 1):
-    #     state += 1
-    # if(features[1] == 1):
-    #     state += 2
-    # if(features[2] == 1):
-    #     state += 4
-    # if(features[3] == 1):
-    #     state += 8
-    # if(features[4] == 1):
-    #     state += 16
-    # if(features[5] == 1):
-    #     state += 32
-    # if(features[6] == 1):
-    #     state += 64
-    # if(features[7] == 1):
-    #     state += 128
-    # if(features[8] == 1):
-    #     state += 256
-    # if(features[9] == 1):
-    #     state += 512
-    # if(features[10] == 1):
-    #     state += 1024
-    # if(features[11] == 1):
-    #     state += 2048
-    # if(features[12] == 1):
-    #     state += 4096
-    # if(features[13] == 1):
-    #     state += 8192
-    # if(features[14] == 1):
-    #     state += 16384
-    # if(features[15] == 1):
-    #     state += 32768
-
     return state
 
 # compare two following actions, return true if directions are opposite and false otherwise
@@ -350,7 +323,7 @@ def get_reward():
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
         reward += 3
-        print('pacman ate a pellet')
+        # print('pacman ate a pellet')
     currentPelletCount = thisLevel.pellets
 
     # Ate a ghost
@@ -364,11 +337,19 @@ def get_reward():
         reward += 5
         atePowerPellet = 0
 
-    # Went towards pellet
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+    # Went towards food pellet
+    # food pellet: 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+    for i in range(8,12):   
         if features[i] == 1 and ACTIONS[i%8] == previousAction:
             reward += 1
         # print('Pacman is going for the pellet!')
+
+    # Went towards power pellet
+    # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
+    for i in range(12,16):   
+        if features[i] == 1 and ACTIONS[i%12] == previousAction:
+            reward += 1
+        # print('Pacman is going for the power pellet!')
     
 
     # print for debug
@@ -381,17 +362,6 @@ def get_reward():
 def transition_reward(action):
     global returnCounter
     reward = 0
-
-    # no pellet dir found - keep walking in the same direction
-    foundPelletDir = 0
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-         if features[i] == 1:
-             foundPelletDir = 1
-
-    if foundPelletDir == 0 and previousAction == action: 
-         reward += 2
-         #print('pacman is searching for a pellet')
-
 
     # action will cause Pacman to return to previous position
     # previousAction = action that lead to this state
@@ -440,7 +410,11 @@ def get_possible_actions():
         dirX, dirY = translateAction(action)  # RIGHT -> [x,y]
         if not thisLevel.CheckIfHitWall((player.x + dirX, player.y + dirY), (player.nearestRow, player.nearestCol)):
             possible_actions.append( actionToInt(action) )
-    
+        
+    # Pacman in tunnel
+    if len(possible_actions) == 0:
+        return actionToInt(previousAction)
+        
     return possible_actions
 
 # make string actions grid transformation coordinates
@@ -490,20 +464,13 @@ def get_best_action(possibleActions, currentState):
     # get possible action with highest Q-value + transition reward
     for action in possibleActions:
         transVal =  transition_reward(ACTIONS[action])
-        # print('trans: ', transVal)
+        # print('possibleAction: ', ACTIONS[action],  ' transVal: ', transVal)
 
         if (qvalues[action] + transVal) > maxVal:
             bestAction = action
             maxVal = qvalues[action] + transVal
-    
-    #print('Feature[8] = ' , features[8])
-    #print('Feature[9] = ' , features[9])
-    #print('Feature[10] = ' , features[10])
-    #print('Feature[11] = ' , features[11])
-
-    #print('Best action: ', ACTIONS[bestAction], '\n')
-
-    #print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
+        
+    # print('Best action: ', ACTIONS[bestAction], '\n')
     return ACTIONS[bestAction]  # return action as string
     
 
@@ -559,23 +526,18 @@ def aiMove():
 
     # get possible actions for current state
     possibleActions = get_possible_actions()
-    ´#print("Possible actions: ", possibleActions)
+    #print("Possible actions: ", possibleActions)
 
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
         action = ACTIONS[random.choice(possibleActions)]
-        # print('random move')
+        print('random move')
     else:
         action = get_best_action(possibleActions, currentState)    # Q(a', s')
 
     previousState = currentState
     prepreAction = previousAction
     previousAction = action
-
-    # exp. decreasing exploration rate
-    if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%100) == 0:
-        EXPLORATION_RATE -= 0.1
-        print('decreased exploration rate: ' , EXPLORATION_RATE)
 
     # start game automatically - for training
     if thisGame.mode == 3:
@@ -598,8 +560,7 @@ def aiMove():
 # 10 = blank screen before changing levels
 
 # load previous Q-table
-# load_qtable_from_file()
-# np.set_printoptions(threshold=np.inf)
+load_qtable_from_file()
 print_qtable()
 
 # initAgent - creating dummy action and first state
@@ -612,7 +573,7 @@ if previousState < 0:
 #####################   MAIN GAME LOOP    ###################
 #                                                           #
 #############################################################
-while True:
+while deaths < 1000:
 
     CheckIfCloseButton(pygame.event.get())
     if thisGame.mode == 0:
@@ -643,6 +604,11 @@ while True:
          
             if thisGame.lives == -1:
                 deaths += 1
+                # exp. decreasing exploration rate
+                if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%100) == 0:
+                    EXPLORATION_RATE -= 0.1
+                    print('decreased exploration rate: ' , EXPLORATION_RATE)
+        
                 # write game data to file 
                 file = open('hilmas_run_data.txt','a') 
                 file.write('-----------------------------\n')
@@ -650,6 +616,7 @@ while True:
                 file.write('-----------------------------\n')
                 file.write('score: ' + str(thisGame.score) + '\n')
                 file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+                file.write('Exploration rate: ' + str(EXPLORATION_RATE) + '\n')
                 file.close()
                 #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
                 #file.writelines(L) 
@@ -685,7 +652,19 @@ while True:
     elif thisGame.mode == 6:
         # pause after eating all the pellets
         thisGame.modeTimer += 1
-
+        
+        file = open('hilmas_run_data.txt','a') 
+        file.write('-----------------------------\n')
+        file.write('YOU WON LEVEL 1!! \n' )
+        file.write('score: ' + str(thisGame.score) + '\n')
+        file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+        file.write('Exploration rate: ' + str(EXPLORATION_RATE) + '\n')
+        file.write('-----------------------------\n')
+        file.close()
+        
+        # don't load next level or shit
+        break
+        
         if thisGame.modeTimer == 1:
             thisGame.SetMode(7)
             oldEdgeLightColor = thisLevel.edgeLightColor

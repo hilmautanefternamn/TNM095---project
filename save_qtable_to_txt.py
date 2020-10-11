@@ -4,7 +4,7 @@ import numpy as np
 Q_table = np.zeros([625, 4])	# new: [625,4] , old: 2**16
 
 # load q-table from file
-loaded_qtable = np.load("q_table_lisa.npy")
+loaded_qtable = np.load("q_table.npy")
 assert loaded_qtable.shape == Q_table.shape, "Q-table sizes do not agree"
 Q_table = loaded_qtable
 
