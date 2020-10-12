@@ -4,11 +4,8 @@
 #------------------------------------
 # Distance to closest normal ghost: x tiles away
 # Distance to closest vulnerable ghost: x tiles away
-# Time left of closest vulnerable ghost: 
-# Walls in neighbouring location: 1 tile away 
 # Distance to closest pellets: x tiles away
-# Distance to closest energizer: x tiles away
-# (Distance to closest fruit)
+# Distance to closest food pellets: x tiles away
 
 # ACTIONS : # RIGHT # LEFT # DOWN # UP
 
@@ -26,23 +23,22 @@
 # Eating a pellet:
 # Killing a ghost:
 # Losing life/Dying:
-# Time step: 
 # Revisit previous/empty positions:
-# Walk into wall:
 
 from pacman import *
 import random
 import numpy as np 
 import math
+import copy
 
 # global constants
 NUM_FEATURES = 16    
 NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.8     # alpha [0,1]
-EXPLORATION_RATE = 0.3  # [0,1]
-DISCOUNT = 0.6          # gamma [0,1]
+LEARNING_RATE = 0.5     # alpha [0,1]
+EXPLORATION_RATE = 0.0  # [0,1]
+DISCOUNT = 0.8          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -56,7 +52,7 @@ hitByGhost = 0
 ateGhost = 0
 towardsPellet = 0
 returnCounter = 0
-# atePowerPellet = 0
+oldFeatures = np.zeros([NUM_FEATURES]).astype(int)
 
 aiTraining = 1
 deaths = 0
@@ -101,7 +97,87 @@ def closest_ghost_dir(state = 1):
         return '', minDist
     return ACTIONS[idx], minDist
 
-# Loop over Pacmans closest grid to find paths to pellets
+
+#														x	x	x	x	x	x	x
+#							x	x	x	x	x			x	-	-	-	-	-	x		
+#		x	x	x			x	-	-	-	x			x	-	-	-	-	-	x
+#		x	o	x			x	-	o	-	x			x	-	-	o	-	-	x
+#		x	x	x			x	-	-	-	x			x	-	-	-	-	-	x
+#							x	x	x	x	x			x	-	-	-	-	-	x
+#														x	x	x	x	x	x	x
+#
+# Loop beyond 3x3 grid around pacman to find closest remaining pellets
+# looking 1 row and col further at each iteration
+def find_far_off_pellet(playerRow,playerCol):
+    paths = {}
+    radius = 1
+    offset = 1
+    idx = 5
+
+    while paths == {}:
+       
+        # top and bottom row
+        for tileRow in [playerRow -(radius + offset), (playerRow + radius + offset)]:  # [-2,2]
+            for tileCol in range(playerCol - (radius + offset), (playerCol + radius + offset + 1)):  # [-2,-1,0,1,2]
+                # find paths
+                
+                if tileRow > 0 and tileRow < 21 and tileCol > 0 and tileCol < 18: 
+                    #print('top/bottom: ', tileRow, tileCol)
+                    paths.update( find_path((tileRow, tileCol),(playerRow, playerCol)) )
+                
+        # left and right columns
+        for tileRow in range(playerRow - (radius + offset), (playerRow + radius + offset + 1)):  # [-2,-1,0,1,2]
+            for tileCol in [playerCol -(radius + offset), (playerCol +radius + offset)]:  # [-2,2]
+                # find paths 
+                
+                if tileRow > 0 and tileRow < 21 and tileCol > 0 and tileCol < 18: 
+                    #print('right/left: ', tileRow, tileCol)
+                    paths.update( find_path((tileRow, tileCol), (playerRow, playerCol)) )
+                
+        offset += 1
+          
+    # get first char of paths with minimum distance to pellet
+    minval = min(paths.values())
+    bestActions = [k[0] for k, v in paths.items() if v==minval]
+
+    # one shortest path
+    if len(bestActions) == 1: 
+        idx = translateChar(bestActions[0])         
+
+    # several paths with same distance - pick random
+    else:
+        idx = translateChar(random.choice(bestActions))
+
+    return idx
+
+# helper function to find_far_off_pellet    
+def find_path(tile, pacman):
+    paths = {}
+    tileRow, tileCol = tile
+    playerRow, playerCol = pacman
+    posY = (player.y) / TILE_WIDTH  # Pacman absolute position
+    posX = (player.x) / TILE_HEIGHT
+
+    # if tile contains pellet, get path and compute distance 
+    if (thisLevel.GetMapTile(tile) == tileID['pellet']):
+        pelletPath = path.FindPath(pacman, tile) 
+                                      
+        # store all possible paths with their distance to Pacman
+        if pelletPath != False and len(pelletPath) > 0: #and translateChar(pelletPath[0]) in possibleActions:
+                            
+            # compute actual distance to pellet & store path in dictionary
+            distance = abs(posY - tileRow) + abs(posX - tileCol)                            
+   
+            # Check if distance is already in the dictionary and if it exists check which distance is lower
+            if pelletPath not in paths:
+                paths.update( {pelletPath: distance} )
+            else:
+                if paths[pelletPath] > distance:
+                    paths.update({pelletPath: distance})
+        
+    return paths
+    
+# Loop over Pacmans closest 3x3 grid to find shortest path to pellets
 def find_pellet_paths(playerRow, playerCol, radius, pelletType):
     possibleActions = get_possible_actions()    # 0, 1, 2, 3    R L D U
     paths = {}
@@ -117,14 +193,12 @@ def find_pellet_paths(playerRow, playerCol, radius, pelletType):
             if (thisLevel.GetMapTile((tileRow, tileCol)) == tileID[pelletType]):
 
                 pelletPath = path.FindPath((playerRow, playerCol), (tileRow,tileCol)) 
-                # print('pelletPath: ', pelletPath)
                               
                 # store all possible paths with their distance to Pacman
                 if pelletPath != False and len(pelletPath) > 0 and translateChar(pelletPath[0]) in possibleActions:
                             
                     # compute actual distance to pellet & store path in dictionary
                     distance = abs(posY - tileRow) + abs(posX - tileCol)                            
-                    #print("pRow: ", playerRow, "pCol: ", playerCol, "Dist: ", distance)
 
                     # Check if distance is already in the dictionary and if it exists check which distance is lower
                     if pelletPath not in paths:
@@ -149,19 +223,11 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
 
     paths = {}
     idx = 5
-    
-    # if (pelletType == 'pellet'):
-        # print('posY, posX: ', posY, ' ', posX)
-        # print('playerRow, playerCol: ', playerRow, ' ', playerCol)
-        # print('diffY, diffX: ', diffY, ' ', diffX)
-
-        
+           
     # Pacman is in centre of a tile, find possible paths to pellet from tile
     if diffY == 0 and diffX == 0:
         paths = find_pellet_paths(playerRow, playerCol, radius, pelletType)
-        # if (pelletType == 'pellet'):
-            # print('Pacman is in center of a tile')
-
+ 
     # Pacman is in between 2 tiles, check for possible paths for both the tiles
     else:
         #Optimize?
@@ -180,40 +246,33 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
         
     # Pellet paths found
     if len(paths) > 0:
-        # if (pelletType == 'pellet'):
-            # print('paths: ', paths)
-
+  
         # get first char of paths with minimum distance to pellet
         minval = min(paths.values())
         bestActions = [k[0] for k, v in paths.items() if v==minval]
         
-        # if (pelletType == 'pellet'):
-            # print('bestActions: ', bestActions)
-
         # one shortest path
         if len(bestActions) == 1: 
             idx = translateChar(bestActions[0])
-            # if (pelletType == 'pellet'):
-                # print('len(bestActions) == 0')
-                # print('idx = translateChar(bestActions[0]) = ', idx )
-
-            
-
-        # several paths with same distance
-        # pick random
+                
+        # several paths with same distance -- pick random
         else:
             # print('Picked random move')
             idx = translateChar( random.choice(bestActions) )
     
     # no close pellet found
     else:
-        # print('no close ', pelletType,  ' found!')
-        return ''
-    # if (pelletType == 'pellet'): 
-        # print('shortest path: ', ACTIONS[idx])
-
+        if pelletType == 'pellet': 
+            idx = find_far_off_pellet(playerRow,playerCol)
+            #print('closest faroff pellet: ', ACTIONS[idx])
+        
+        # don't look further for power pellets
+        else:
+            return ''
+  
     # print('Closest ', pelletType, ' dir: ', ACTIONS[idx])
     return ACTIONS[idx]
+
 
 
 #####################   FEATURE & REWARD COMPUTATIONS    ####################
@@ -331,11 +390,6 @@ def opposite_directions(dir1, dir2):
 # s' : currentState
 def get_reward():
     global currentPelletCount, hitByGhost, ateGhost#, atePowerPellet
-    # print('inside get reward function')
-    # print('     hitByGhost: ', hitByGhost)
-    # print('     ateGhost: ', ateGhost)
-    # print('     atePowerPellet: ', thisLevel.atePowerPellet)
-
 
     reward = 0
    
@@ -359,13 +413,19 @@ def get_reward():
     
     # Ate a power pellet
     if thisLevel.atePowerPellet == 1:
-        reward += 5
+        reward += 3
         thisLevel.atePowerPellet = 0
         # print('pacman ate a powerPellet')  
+    
+ #   for i in range(8,12):   
+ #       if oldFeatures[i] == 1 and ACTIONS[i%8] == previousAction:
+ #           reward += 2
+            # print('Pacman is going for the pellet!')
 
-    # print for debug
-    # if reward != 0:
-    #     print('reward: ', reward)
+ #   for i in range(0,4):   
+ #       if oldFeatures[i] == 1 and ACTIONS[i] == previousAction:
+ #           reward -= 5
+            # print('Pacman is going for the ghost!')
 
     return reward
 
@@ -391,16 +451,17 @@ def transition_reward(action):
             reward += 1
             #print('Pacman is going for the pellet!')
 
-    # Went towards power pellet
-    # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
-    for i in range(12,16):   
-        if features[i] == 1 and ACTIONS[i%12] == action:
-            reward += 1
-            #print('Pacman is going for the power pellet!')
+    # # Went towards power pellet
+    # # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
+    # for i in range(12,16):   
+    #     if features[i] == 1 and ACTIONS[i%12] == action:
+    #         reward += 1
+    #         #print('Pacman is going for the power pellet!')
 
     #thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
     return reward
     
+
 
 #####################   Q-TABLE HANDLING    #####################
 #           UPDATE VARIABLE + LOAD FROM & SAVE TO FILE          #
@@ -423,6 +484,7 @@ def print_qtable():
     print(Q_table)
 
 
+
 #####################   ACTIONS HANDLING    #####################
 #  TRANSLATE STRING TO COORDINATES & GET POSSIBLE/BEST ACTIONS  #
 #################################################################
@@ -434,8 +496,13 @@ def get_possible_actions():
         dirX, dirY = translateAction(action)  # RIGHT -> [x,y]
         if not thisLevel.CheckIfHitWall((player.x + dirX, player.y + dirY), (player.nearestRow, player.nearestCol)):
             possible_actions.append( actionToInt(action) )
-        
-    
+
+            # Pacman should not be able to walk through ghost door
+            row = int(round(player.y + dirY))     
+            col = int(round(player.x + dirX))
+            if thisLevel.GetMapTile((row, col)) != tileID['ghost-door']:
+                possible_actions.append( actionToInt(action) )
+       
     # Pacman in tunnel
     if len(possible_actions) == 4:
         if thisLevel.doorH == 1:
@@ -531,9 +598,6 @@ def update_qtable(previousAction, previousState, currentState):
     # compute new Q-value with Bellman eq.
     new_q = old_q + LEARNING_RATE * (get_reward() + DISCOUNT * maxQ - old_q)
     Q_table[previousState][actionToInt(previousAction)] = new_q
-    # print('update_qtable(', previousAction, ' ', previousState, ' ', currentState, ')')
-    # print('old_q: ', old_q)
-    # print('new_q: ', new_q)
 
     # save updated version
     save_qtable_to_file()
@@ -543,17 +607,13 @@ def update_qtable(previousAction, previousState, currentState):
 #       RETURNS RIGHT, LEFT, DOWN or UP TO GAME LOGIC           #
 #################################################################
 def aiMove():
-    global prepreAction, previousAction, previousState, EXPLORATION_RATE
+    global prepreAction, previousAction, previousState, EXPLORATION_RATE, oldFeatures
 
     # print('\naimove')
-#    print('RIGHT ' , features[8])
-#    print('LEFT = ' , features[9])
-#    print('DOWN = ' , features[10])
-#    print('UP = ' , features[11])
-
    # s -a-> s' => Q
    # s : previousState
    # s' : currentState
+    oldFeatures = copy.deepcopy(features)
 
     # update features and get the current state
     calculate_features()
@@ -577,13 +637,10 @@ def aiMove():
     # print('Feature[15] = ' , features[15])
   
     # update Q-value for s -a-> s'
-
     update_qtable(previousAction, previousState, currentState)
     
-
     # get possible actions for current state
     possibleActions = get_possible_actions()
-    # print("Possible actions: ", possibleActions)
 
     # exploration rate - pick random or best action
     if (random.uniform(0, 1) < EXPLORATION_RATE):
@@ -599,6 +656,7 @@ def aiMove():
     # start game automatically - for training
     if thisGame.mode == 3:
         return 'ENTER'
+
     # print('action from aimove: ', action)
     return action
 
@@ -617,20 +675,13 @@ def aiMove():
 # 10 = blank screen before changing levels
 
 # load previous Q-table
-load_qtable_from_file()
+# load_qtable_from_file()
 print_qtable()
 
 # initAgent - creating dummy action and first state
 if previousState < 0:
-    # print('startup, prevAct = UP')
-    # print('call calculate_features')
     previousAction = 'UP' # dummy action
     calculate_features()
-    # print('Feature[8] = ' , features[8])
-    # print('Feature[9] = ' , features[9])
-    # print('Feature[10] = ' , features[10])
-    # print('Feature[11] = ' , features[11])
-    
     previousState = feature_to_state()
 
 
@@ -682,8 +733,6 @@ while deaths < 1000:
                 file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
                 file.write('Exploration rate: ' + str(EXPLORATION_RATE) + '\n')
                 file.close()
-                #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
-                #file.writelines(L) 
 
                 #thisGame.updatehiscores(thisGame.score)
                 thisGame.SetMode(3)
@@ -852,6 +901,6 @@ while deaths < 1000:
     del rect_list[:]
 
 
-    clock.tick(40.0 + aiTraining * 0)
+    clock.tick(40.0 + aiTraining * 1)
 
  
