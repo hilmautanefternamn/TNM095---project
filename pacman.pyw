@@ -48,7 +48,6 @@ HS_XOFFSET = 180
 HS_YOFFSET = 400
 HS_ALPHA = 200
 
-AISPEED = 2
 
 # new constants for the score's position
 SCORE_XOFFSET = 50  # pixels from left edge
@@ -612,7 +611,7 @@ class ghost:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 2 * AISPEED
+        self.speed = 2
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -764,7 +763,7 @@ class ghost:
                 ghosts[self.id].velX = 0
                 ghosts[self.id].velY = 0
                 #ghosts[self.id].state = 1
-                ghosts[self.id].speed = 2 * AISPEED
+                ghosts[self.id].speed = 2
                 ghosts[self.id].Move()
 
             # chase pac-man
@@ -819,7 +818,7 @@ class fruit:
         self.y = -TILE_HEIGHT
         self.velX = 0
         self.velY = 0
-        self.speed = 2 * AISPEED
+        self.speed = 2 
         self.active = False
 
         self.bouncei = 0
@@ -926,7 +925,7 @@ class pacman:
         self.y = 0
         self.velX = 0
         self.velY = 0
-        self.speed = 3 * AISPEED
+        self.speed = 3 
 
         self.nearestRow = 0
         self.nearestCol = 0
@@ -1198,7 +1197,7 @@ class level:
         result = thisLevel.GetMapTile((iRow, iCol))
 
         if result == tileID['pellet']:
-            print('CheckIfHitSomething tileID == pellet')
+            #print('CheckIfHitSomething tileID == pellet')
             # got a pellet
             thisLevel.SetMapTile((iRow, iCol), 0)
             #snd_pellet[player.pelletSndNum].play()
@@ -1490,7 +1489,7 @@ class level:
 
     def Restart(self):
         if thisGame.levelNum == 2:
-            player.speed = 3 * AISPEED
+            player.speed = 3 
 
         for i in range(0, 4, 1):
             # move ghosts back to home
@@ -1499,7 +1498,7 @@ class level:
             ghosts[i].velX = 0
             ghosts[i].velY = 0
             ghosts[i].state = 1
-            ghosts[i].speed = 2 * AISPEED
+            ghosts[i].speed = 2 
             ghosts[i].Move()
 
             # give each ghost a path to a random spot (containing a pellet)

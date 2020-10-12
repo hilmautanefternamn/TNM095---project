@@ -41,7 +41,7 @@ NUM_STATES = 625        # 2**NUM_FEATURES
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
 LEARNING_RATE = 0.5     # alpha [0,1]
-EXPLORATION_RATE = 0.5  # [0,1]
+EXPLORATION_RATE = 0.2  # [0,1]
 DISCOUNT = 0.8          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
@@ -108,6 +108,10 @@ def find_pellet_paths(playerRow, playerCol, radius, pelletType):
 
     posY = (player.y) / TILE_WIDTH  # Pacman absolute position
     posX = (player.x) / TILE_HEIGHT
+    
+    if thisLevel.pellets < 30:
+        radius = 8
+        print("stor radius")
 
     # loop over grid around Pacman
     for tileRow in range(playerRow - radius, playerRow + radius + 1):           # y 
@@ -359,7 +363,7 @@ def get_reward():
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
         reward += 3
-        print('pacman ate a pellet')
+        #print('pacman ate a pellet')
     currentPelletCount = thisLevel.pellets
 
     # Ate a ghost
@@ -373,11 +377,19 @@ def get_reward():
         reward += 5
         atePowerPellet = 0
 
-    # Went towards pellet
-    for i in range(8,12):   # 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+    # Went towards food pellet
+    # food pellet: 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+    for i in range(8,12):   
         if features[i] == 1 and ACTIONS[i%8] == previousAction:
             reward += 1
         # print('Pacman is going for the pellet!')
+
+    # Went towards power pellet
+    # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
+    for i in range(12,16):   
+        if features[i] == 1 and ACTIONS[i%12] == previousAction:
+            reward += 1
+        # print('Pacman is going for the power pellet!')
     
 
     # print for debug
@@ -450,6 +462,10 @@ def get_possible_actions():
         if not thisLevel.CheckIfHitWall((player.x + dirX, player.y + dirY), (player.nearestRow, player.nearestCol)):
             possible_actions.append( actionToInt(action) )
     
+    # Pacman in tunnel
+    if len(possible_actions) == 0:
+        return possible_actions.append(actionToInt(previousAction))
+
     return possible_actions
 
 # make string actions grid transformation coordinates
@@ -511,6 +527,9 @@ def get_best_action(possibleActions, currentState):
     #print('Feature[11] = ' , features[11])
 
     #print('Best action: ', ACTIONS[bestAction], '\n')
+
+    if bestAction == 5:
+        return previousAction
 
     #print('possible action with highest Q-value: ', ACTIONS[bestAction], ' , value: ', maxVal)
     return ACTIONS[bestAction]  # return action as string
@@ -581,10 +600,7 @@ def aiMove():
     prepreAction = previousAction
     previousAction = action
 
-    # exp. decreasing exploration rate
-    if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%100) == 0:
-        EXPLORATION_RATE -= 0.1
-        print('decreased exploration rate: ' , EXPLORATION_RATE)
+
 
     # start game automatically - for training
     if thisGame.mode == 3:
@@ -607,7 +623,7 @@ def aiMove():
 # 10 = blank screen before changing levels
 
 # load previous Q-table
-# load_qtable_from_file()
+load_qtable_from_file()
 # np.set_printoptions(threshold=np.inf)
 print_qtable()
 
@@ -622,6 +638,7 @@ if previousState < 0:
 #                                                           #
 #############################################################
 while deaths < 1000:
+   
 
     CheckIfCloseButton(pygame.event.get())
     if thisGame.mode == 0:
@@ -652,6 +669,10 @@ while deaths < 1000:
          
             if thisGame.lives == -1:
                 deaths += 1
+                # exp. decreasing exploration rate
+                if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%10) == 0:
+                    EXPLORATION_RATE -= 0.1
+                    print('decreased exploration rate: ' , EXPLORATION_RATE)
                 # write game data to file 
                 file = open('hilmas_run_data.txt','a') 
                 file.write('-----------------------------\n')
@@ -659,6 +680,7 @@ while deaths < 1000:
                 file.write('-----------------------------\n')
                 file.write('score: ' + str(thisGame.score) + '\n')
                 file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+                file.write('Exploration rate: ' + str(EXPLORATION_RATE) + '\n')
                 file.close()
                 #L = ["-----------------------------\n", "score: " + str(thisGame.score) + "\n", "remaining pellets: " + str(thisLevel.pellets) + "/140\n"]   
                 #file.writelines(L) 
@@ -692,6 +714,18 @@ while deaths < 1000:
             thisGame.SetMode(8)
 
     elif thisGame.mode == 6:
+        file = open('hilmas_run_data.txt','a') 
+        file.write('-----------------------------\n')
+        file.write('YOU WON LEVEL 1!! \n' )
+        file.write('score: ' + str(thisGame.score) + '\n')
+        file.write('remaining pellets: ' + str(thisLevel.pellets) + '/140 \n')
+        file.write('Exploration rate: ' + str(EXPLORATION_RATE) + '\n')
+        file.write('-----------------------------\n')
+        file.close()
+
+        # don't load next level or shit
+        break
+
         # pause after eating all the pellets
         thisGame.modeTimer += 1
 
