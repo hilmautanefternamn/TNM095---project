@@ -1170,7 +1170,7 @@ class level:
             result = thisLevel.GetMapTile((iRow, iCol))
 
             if result == tileID['pellet']:
-                print('CheckIfHitSomething tileID == pellet ')
+                # print('CheckIfHitSomething tileID == pellet ')
                 # got a pellet
                 thisLevel.SetMapTile((iRow, iCol), 0)
                 #snd_pellet[player.pelletSndNum].play()
