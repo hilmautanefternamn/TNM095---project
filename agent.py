@@ -40,9 +40,9 @@ NUM_FEATURES = 16
 NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 1.0     # alpha [0,1]
+LEARNING_RATE = 0.8     # alpha [0,1]
 EXPLORATION_RATE = 0.3  # [0,1]
-DISCOUNT = 0.0          # gamma [0,1]
+DISCOUNT = 0.6          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -384,19 +384,19 @@ def transition_reward(action):
     else: 
          returnCounter = 0
 
-    # # Went towards food pellet
-    # # food pellet: 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
-    # for i in range(8,12):   
-    #     if features[i] == 1 and ACTIONS[i%8] == action:
-    #         reward += 1
-    #         print('Pacman is going for the pellet!')
+    # Went towards food pellet
+    # food pellet: 8 = RIGHT, 9 = LEFT, 10 = DOWN, 11 = UP
+    for i in range(8,12):   
+        if features[i] == 1 and ACTIONS[i%8] == action:
+            reward += 1
+            #print('Pacman is going for the pellet!')
 
-    # # Went towards power pellet
-    # # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
-    # for i in range(12,16):   
-    #     if features[i] == 1 and ACTIONS[i%12] == action:
-    #         reward += 1
-    #         print('Pacman is going for the power pellet!')
+    # Went towards power pellet
+    # power pellet: 12 = RIGHT, 13 = LEFT, 14 = DOWN, 15 = UP
+    for i in range(12,16):   
+        if features[i] == 1 and ACTIONS[i%12] == action:
+            reward += 1
+            #print('Pacman is going for the power pellet!')
 
     #thisLevel.powerPelletBlinkTimer < tooShortToKill && distance to nearest ghost is too short
     return reward
@@ -617,7 +617,7 @@ def aiMove():
 # 10 = blank screen before changing levels
 
 # load previous Q-table
-# load_qtable_from_file()
+load_qtable_from_file()
 print_qtable()
 
 # initAgent - creating dummy action and first state
