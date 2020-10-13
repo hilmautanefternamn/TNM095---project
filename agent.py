@@ -123,7 +123,15 @@ def find_far_off_pellet(playerRow,playerCol):
                 
                 if tileRow > 0 and tileRow < 21 and tileCol > 0 and tileCol < 18: 
                     #print('top/bottom: ', tileRow, tileCol)
-                    paths.update( find_path((tileRow, tileCol),(playerRow, playerCol)) )
+                    pelletPaths = find_path((tileRow, tileCol),(playerRow, playerCol))
+  
+                    # only save found paths if they have not already been found or if they have shorter distance
+                    for path in pelletPaths:    
+                        if path not in paths:
+                            paths.update( {path : pelletPaths[path]} )
+                        else:
+                            if paths[path] > pelletPaths[path]:
+                                paths.update( {path : pelletPaths[path]} )
                 
         # left and right columns
         for tileRow in range(playerRow - (radius + offset), (playerRow + radius + offset + 1)):  # [-2,-1,0,1,2]
@@ -132,7 +140,15 @@ def find_far_off_pellet(playerRow,playerCol):
                 
                 if tileRow > 0 and tileRow < 21 and tileCol > 0 and tileCol < 18: 
                     #print('right/left: ', tileRow, tileCol)
-                    paths.update( find_path((tileRow, tileCol), (playerRow, playerCol)) )
+                    pelletPaths = find_path((tileRow, tileCol),(playerRow, playerCol))
+  
+                    # only save found paths if they have not already been found or if they have shorter distance
+                    for path in pelletPaths:    
+                        if path not in paths:
+                            paths.update( {path : pelletPaths[path]} )
+                        else:
+                            if paths[path] > pelletPaths[path]:
+                                paths.update( {path : pelletPaths[path]} )
                 
         offset += 1
           
@@ -242,8 +258,16 @@ def closest_pellet_dir(radius = 1, pelletType = 'pellet'):
             elif(diffX != 0):
                 playerCol = math.floor(posX)
 
-            paths.update( find_pellet_paths(playerRow, playerCol, radius, pelletType) )
-        
+            pelletPaths = find_pellet_paths(playerRow, playerCol, radius, pelletType) 
+
+            # only save found paths if they have not already been found or if they have shorter distance
+            for path in pelletPaths:      
+                if path not in paths:
+                    paths.update( {path : pelletPaths[path]} )
+                else:
+                    if paths[path] > pelletPaths[path]:
+                        paths.update( {path : pelletPaths[path]} )
+                         
     # Pellet paths found
     if len(paths) > 0:
   
@@ -417,14 +441,14 @@ def get_reward():
         thisLevel.atePowerPellet = 0
         # print('pacman ate a powerPellet')  
     
- #   for i in range(8,12):   
- #       if oldFeatures[i] == 1 and ACTIONS[i%8] == previousAction:
- #           reward += 2
+    for i in range(8,12):   
+        if oldFeatures[i] == 1 and ACTIONS[i%8] == previousAction:
+            reward += 2
             # print('Pacman is going for the pellet!')
 
- #   for i in range(0,4):   
- #       if oldFeatures[i] == 1 and ACTIONS[i] == previousAction:
- #           reward -= 5
+    for i in range(0,4):   
+       if oldFeatures[i] == 1 and ACTIONS[i] == previousAction:
+            reward -= 5
             # print('Pacman is going for the ghost!')
 
     return reward
