@@ -36,9 +36,9 @@ NUM_FEATURES = 16
 NUM_STATES = 625        # 2**NUM_FEATURES 
 NUM_ACTIONS = 4         # RIGHT, LEFT, DOWN or UP 
 ACTIONS = ['RIGHT', 'LEFT', 'DOWN', 'UP'] 
-LEARNING_RATE = 0.005     # alpha [0,1]
-EXPLORATION_RATE = 0.4  # [0,1]
-DISCOUNT = 0.98          # gamma [0,1]
+LEARNING_RATE = 0.0     # alpha [0,1]
+EXPLORATION_RATE = 0.0  # [0,1]
+DISCOUNT = 0.95          # gamma [0,1]
 
 Q_table = np.zeros([NUM_STATES, NUM_ACTIONS])
 features = np.zeros([NUM_FEATURES]).astype(int) # binary
@@ -95,7 +95,7 @@ def closest_ghost_dir(state = 1):
     # no close ghost found
     if closestGhostPath == "":
         return '', minDist
-    print('closest_ghost_dir: ', ACTIONS[idx], minDist)
+    # print('closest_ghost_dir: ', ACTIONS[idx], minDist)
     return ACTIONS[idx], minDist
 
 
@@ -432,14 +432,14 @@ def get_reward():
    
     # Lost a life
     if hitByGhost == 1:
-        reward -= 50
+        reward -= 30
         hitByGhost = 0
         # print('pacman lost a life')
 
     # Ate a pellet
     if currentPelletCount > thisLevel.pellets:
-        reward += 10
-        print('pacman ate a pellet')
+        reward += 5
+        # print('pacman ate a pellet')
     currentPelletCount = thisLevel.pellets
 
     # # UNCOMMENT IF USING VULNERABLE GHOST IN FEATURE VECTOR
@@ -453,27 +453,27 @@ def get_reward():
     # Reversed in his path
     if (features[4] == 1 and oldFeatures[5] == 1) or (features[5] == 1 and oldFeatures[4] == 1):
         reward -= 2
-        print('Pacman reversed between left n right')
+        # print('Pacman reversed between left n right')
     if features[6] == 1 and oldFeatures[7] == 1:
         reward -= 2
-        print('Pacman reversed between up n down')
+        # print('Pacman reversed between up n down')
     
     # Ate a power pellet
     if thisLevel.atePowerPellet == 1:
-        reward += 3
+        reward += 5
         thisLevel.atePowerPellet = 0
-        print('pacman ate a powerPellet')  
+        # print('pacman ate a powerPellet')  
     
-    for i in range(8,12):   
-        if oldFeatures[i] == 1 and ACTIONS[i%8] == previousAction:
-            reward += 0
-            print('Pacman is going for the pellet!')
+    # for i in range(8,12):   
+    #     if oldFeatures[i] == 1 and ACTIONS[i%8] == previousAction:
+    #         reward += 2
+    #         # print('Pacman is going for the pellet!')
 
-    for i in range(0,4):   
-       if oldFeatures[i] == 1 and ACTIONS[i] == previousAction:
-            reward -= 2
-            print('Pacman is going for the ghost!')
-    print('reward: ', reward)
+    # for i in range(0,4):   
+    #    if oldFeatures[i] == 1 and ACTIONS[i] == previousAction:
+    #         reward -= 5
+    #         # print('Pacman is going for the ghost!')
+    # print('reward: ', reward)
     return reward
 
 # compute transition reward to help choose best possible action
@@ -654,30 +654,30 @@ def aiMove():
     global prepreAction, previousAction, previousState, EXPLORATION_RATE, oldFeatures
 
 
-    print('\n\n\naimove')
+    # print('\n\n\naimove')
     
     # s -a-> s' => Q
     # s : previousState
     # s' : currentState
     oldFeatures = copy.deepcopy(features)
-    print('Pacman chose: ', previousAction)
-    print('While being in this state:')
+    # print('Pacman chose: ', previousAction)
+    # print('While being in this state:')
 
-    print('oldFeature[0] = ' , oldFeatures[0])
-    print('oldFeature[1] = ' , oldFeatures[1])
-    print('oldFeature[2] = ' , oldFeatures[2])
-    print('oldFeature[3] = ' , oldFeatures[3], '\n')
-    print('oldFeature[8] = ' , oldFeatures[8])
-    print('oldFeature[9] = ' , oldFeatures[9])
-    print('oldFeature[10] = ' , oldFeatures[10])
-    print('oldFeature[11] = ' , oldFeatures[11])
+    # print('oldFeature[0] = ' , oldFeatures[0])
+    # print('oldFeature[1] = ' , oldFeatures[1])
+    # print('oldFeature[2] = ' , oldFeatures[2])
+    # print('oldFeature[3] = ' , oldFeatures[3], '\n')
+    # print('oldFeature[8] = ' , oldFeatures[8])
+    # print('oldFeature[9] = ' , oldFeatures[9])
+    # print('oldFeature[10] = ' , oldFeatures[10])
+    # print('oldFeature[11] = ' , oldFeatures[11])
 
     # update features and get the current state
     calculate_features()
     currentState = feature_to_state()
   
     # update Q-value for s -a-> s'
-    print('This led to the rewards: ')
+    # print('This led to the rewards: ')
     update_qtable(previousAction, previousState, currentState)
     
     # print('And it led to this state')
@@ -735,7 +735,7 @@ if previousState < 0:
 #####################   MAIN GAME LOOP    ###################
 #                                                           #
 #############################################################
-while deaths < 1000:
+while deaths < 10000:
 
     CheckIfCloseButton(pygame.event.get())
     if thisGame.mode == 0:
@@ -766,14 +766,14 @@ while deaths < 1000:
          
             if thisGame.lives == -1:
                 deaths += 1
-   
+                # print('TRAINING05 deaths: ', deaths)   
                 # exp. decreasing exploration rate
-                if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%100) == 0:
+                if (EXPLORATION_RATE -0.1) > 0 and deaths > 0 and (deaths%450) == 0:
                     EXPLORATION_RATE -= 0.1
                     print('decreased exploration rate: ' , EXPLORATION_RATE)
         
                 # write game data to file 
-                file = open('lisas_run_data.txt','a') 
+                file = open('pacman_run_data.txt','a') 
                 file.write('-----------------------------\n')
                 file.write('---------- death ' + str(deaths) + ' ----------\n')
                 file.write('-----------------------------\n')
@@ -809,12 +809,17 @@ while deaths < 1000:
 
         if aiTraining or thisGame.modeTimer == 20:    #change to 20
             thisGame.SetMode(8)
-
+    
+    
+    
     elif thisGame.mode == 6:
         # pause after eating all the pellets
         thisGame.modeTimer += 1
+        deaths +=1
+
+        print('U WON U WON U WON U WON U WON')
         
-        file = open('lisas_run_data.txt','a') 
+        file = open('pacman_run_data.txt','a') 
         file.write('-----------------------------\n')
         file.write('YOU WON LEVEL 1!! \n' )
         file.write('score: ' + str(thisGame.score) + '\n')
@@ -824,13 +829,22 @@ while deaths < 1000:
         file.close()
         
         # don't load next level or shit
-        break
+        # break
+
+        thisGame.levelNum = 1
+        thisGame.score = 0
+        thisGame.lives = 0  # originally 3
+
+        thisGame.SetMode(0)
+        thisLevel.LoadLevel(thisGame.GetLevelNum())
         
-        if thisGame.modeTimer == 1:
-            thisGame.SetMode(7)
-            oldEdgeLightColor = thisLevel.edgeLightColor
-            oldEdgeShadowColor = thisLevel.edgeShadowColor
-            oldFillColor = thisLevel.fillColor
+        continue
+        
+        # if thisGame.modeTimer == 1:
+        #     thisGame.SetMode(7)
+        #     oldEdgeLightColor = thisLevel.edgeLightColor
+        #     oldEdgeShadowColor = thisLevel.edgeShadowColor
+        #     oldFillColor = thisLevel.fillColor
 
     elif thisGame.mode == 7:
         # flashing maze after finishing level
@@ -949,6 +963,6 @@ while deaths < 1000:
     del rect_list[:]
 
 
-    clock.tick(40 + aiTraining * 99999)
+    clock.tick(40 + aiTraining * 0)
 
  
